@@ -17,39 +17,65 @@ let products = [];
 
 try {
   // 尝试从构建后的 products-data JS 文件中读取产品数据
-  const productsDataFiles = fs.readdirSync(path.join(distDir, 'assets')).filter(f => f.startsWith('products-data-') && f.endsWith('.js'));
+  const assetsDir = path.join(distDir, 'assets');
+  let productsDataFiles = [];
   
-  if (productsDataFiles.length > 0) {
-    const productsDataFile = path.join(distDir, 'assets', productsDataFiles[0]);
-    const productsDataJs = fs.readFileSync(productsDataFile, 'utf-8');
-    // 尝试提取 products 数组
-    try {
-      // 使用正则提取数组内容
-      const arrayMatch = productsDataJs.match(/export\s+const\s+products\s*=\s*(\[[\s\S]*?\]);/);
-      if (arrayMatch) {
-        // 安全地评估（仅在构建时执行）
-        const moduleCode = productsDataJs.replace(/export\s+const\s+products/, 'const products');
-        const func = new Function('return ' + moduleCode.split('=')[1].split(';')[0] + ';');
-        products = func();
-      }
-    } catch (e) {
-      console.warn('无法从构建文件提取产品数据:', e);
-    }
+  if (fs.existsSync(assetsDir)) {
+    productsDataFiles = fs.readdirSync(assetsDir).filter(f => f.startsWith('products-data-') && f.endsWith('.js'));
   }
   
-  // 如果无法从构建文件获取，尝试从源代码读取
-  if (products.length === 0) {
-    const productsDataPath = path.join(rootDir, 'src', 'config', 'products-data.ts');
-    const productsDataContent = fs.readFileSync(productsDataPath, 'utf-8');
-    // 简单解析 productId（这里只是获取产品数量，实际数据从构建文件获取）
-    const productIdMatches = productsDataContent.match(/productId:\s*['"]([^'"]+)['"]/g);
-    if (productIdMatches) {
-      console.warn('无法从构建文件获取完整产品数据，将跳过内联（使用 JavaScript 动态加载）');
+  if (productsDataFiles.length > 0) {
+    const productsDataFile = path.join(assetsDir, productsDataFiles[0]);
+    const productsDataJs = fs.readFileSync(productsDataFile, 'utf-8');
+    
+    // 尝试提取 products 数组
+    // 构建后的代码格式可能是: const e=[...];export{e as products}
+    // 或者: const products=[...];export{products}
+    try {
+      // 方法1: 匹配 export{e as products} 或 export{products} 之前的数组
+      // 查找最后一个数组字面量（通常是最大的那个）
+      const arrayMatches = productsDataJs.matchAll(/const\s+\w+\s*=\s*(\[[\s\S]*?\])/g);
+      let largestMatch = null;
+      let largestLength = 0;
+      
+      for (const match of arrayMatches) {
+        if (match[1] && match[1].length > largestLength) {
+          largestLength = match[1].length;
+          largestMatch = match[1];
+        }
+      }
+      
+      if (largestMatch) {
+        try {
+          // 尝试解析为 JSON（如果格式正确）
+          products = JSON.parse(largestMatch);
+          if (Array.isArray(products) && products.length > 0) {
+            console.log(`✅ 从构建文件读取到 ${products.length} 个产品`);
+          } else {
+            products = [];
+          }
+        } catch (jsonError) {
+          // 如果不是标准 JSON，使用 eval（仅构建时，安全）
+          try {
+            products = eval('(' + largestMatch + ')');
+            if (Array.isArray(products) && products.length > 0) {
+              console.log(`✅ 从构建文件读取到 ${products.length} 个产品`);
+            } else {
+              products = [];
+            }
+          } catch (evalError) {
+            console.warn('解析产品数据时出错:', evalError.message);
+            products = [];
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('无法从构建文件提取产品数据:', e.message);
       products = [];
     }
   }
 } catch (e) {
-  console.warn('无法读取产品数据:', e);
+  console.warn('无法读取产品数据:', e.message);
   products = [];
 }
 
