@@ -40,33 +40,47 @@ export function getProductIdFromUrl(): string | null {
 }
 
 export function renderProductDetail(productId: string | null): void {
+  console.log('[renderProductDetail] Start, productId:', productId);
+  
   if (!productId) {
-    console.error('Product ID not found in URL');
+    console.error('[renderProductDetail] Product ID not found in URL');
     // 默认显示第一个产品
     if (products.length > 0) {
-      console.log('Using default product:', products[0].productId);
+      console.log('[renderProductDetail] Using default product:', products[0].productId);
       renderProductDetail(products[0].productId);
     } else {
-      console.error('No products available');
+      console.error('[renderProductDetail] No products available');
     }
     return;
   }
-
-  console.log('Rendering product:', productId);
+  
+  console.log('[renderProductDetail] Looking for product:', productId);
   const product = products.find(p => p.productId === productId);
   if (!product) {
-    console.error(`Product not found: ${productId}. Available products:`, products.map(p => p.productId));
+    console.error(`[renderProductDetail] Product not found: ${productId}. Available products:`, products.map(p => p.productId));
     // 显示404或重定向到首页
     if (products.length > 0) {
-      console.log('Redirecting to home page');
+      console.log('[renderProductDetail] Redirecting to home page');
       window.location.href = '/';
     }
     return;
   }
   
-  console.log('Product found:', product.name);
+  console.log('[renderProductDetail] Product found:', product.name);
 
-  const currentLang = i18n.getLang() as Language;
+  // 获取语言，如果 i18n 未初始化则使用默认语言 'zh-CN'
+  let currentLang: Language = 'zh-CN';
+  try {
+    const i18nInstance = (window as any).i18n || i18n;
+    if (i18nInstance && i18nInstance.getLang) {
+      currentLang = i18nInstance.getLang() as Language;
+      console.log('[renderProductDetail] Using language:', currentLang);
+    } else {
+      console.warn('[renderProductDetail] i18n not available, using default language zh-CN');
+    }
+  } catch (e) {
+    console.warn('[renderProductDetail] Error getting language, using default:', e);
+  }
 
   // 更新页面标题
   document.title = `${product.name[currentLang]} - SINIAN LAB`;
@@ -75,6 +89,9 @@ export function renderProductDetail(productId: string | null): void {
   const productNameSpan = document.getElementById('product-name');
   if (productNameSpan) {
     productNameSpan.textContent = product.name[currentLang];
+    console.log('[renderProductDetail] Updated product-name:', product.name[currentLang]);
+  } else {
+    console.warn('[renderProductDetail] product-name element not found');
   }
   
   // 更新面包屑中的链接（如果存在）
@@ -99,6 +116,9 @@ export function renderProductDetail(productId: string | null): void {
   if (productImage) {
     productImage.src = product.image;
     productImage.alt = product.name[currentLang];
+    console.log('[renderProductDetail] Updated product-image:', product.image);
+  } else {
+    console.warn('[renderProductDetail] product-image element not found');
   }
 
   // 更新产品信息
@@ -106,9 +126,26 @@ export function renderProductDetail(productId: string | null): void {
   const productTagline = document.getElementById('product-tagline');
   const productPrice = document.getElementById('product-price');
   
-  if (productTitle) productTitle.textContent = product.name[currentLang];
-  if (productTagline) productTagline.textContent = product.tagline[currentLang];
-  if (productPrice) productPrice.textContent = product.price[currentLang];
+  if (productTitle) {
+    productTitle.textContent = product.name[currentLang];
+    console.log('[renderProductDetail] Updated product-title:', product.name[currentLang]);
+  } else {
+    console.warn('[renderProductDetail] product-title element not found');
+  }
+  
+  if (productTagline) {
+    productTagline.textContent = product.tagline[currentLang];
+    console.log('[renderProductDetail] Updated product-tagline:', product.tagline[currentLang]);
+  } else {
+    console.warn('[renderProductDetail] product-tagline element not found');
+  }
+  
+  if (productPrice) {
+    productPrice.textContent = product.price[currentLang];
+    console.log('[renderProductDetail] Updated product-price:', product.price[currentLang]);
+  } else {
+    console.warn('[renderProductDetail] product-price element not found');
+  }
 
   // 更新产品特性
   const featuresGrid = document.getElementById('features-grid');
@@ -120,6 +157,9 @@ export function renderProductDetail(productId: string | null): void {
         <p>${feature.description[currentLang]}</p>
       </div>
     `).join('');
+    console.log('[renderProductDetail] Updated features-grid with', product.features.length, 'features');
+  } else {
+    console.warn('[renderProductDetail] features-grid element not found');
   }
 
   // 更新产品规格
@@ -149,12 +189,21 @@ export function renderProductDetail(productId: string | null): void {
         </ul>
       </div>
     `;
+    console.log('[renderProductDetail] Updated specs-grid');
+  } else {
+    console.warn('[renderProductDetail] specs-grid element not found');
   }
 
-  // 监听语言变化，重新渲染
-  window.addEventListener('languageChanged', () => {
-    renderProductDetail(productId);
-  });
+  console.log('[renderProductDetail] Rendering completed for product:', productId);
+
+  // 监听语言变化，重新渲染（避免重复绑定）
+  const eventKey = `languageChanged_${productId}`;
+  if (!(window as any)[eventKey]) {
+    (window as any)[eventKey] = true;
+    window.addEventListener('languageChanged', () => {
+      renderProductDetail(productId);
+    });
+  }
 }
 
 // 初始化产品详情页
