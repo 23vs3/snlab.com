@@ -8,7 +8,7 @@
     "dev:qr": "vite && open http://localhost:3001/qr-display.html",
     "prebuild": "node scripts/copy-content.js",
     "build": "npm run prebuild && tsc && vite build && npm run postbuild",
-    "postbuild": "node scripts/generate-product-pages.js",
+    "postbuild": "node scripts/generate-product-pages.js && node scripts/generate-warranty-page.js",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "create-page": "node scripts/create-page.js"
