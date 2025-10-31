@@ -15,34 +15,15 @@ export async function renderWarrantyContent(): Promise<void> {
   
   try {
     // 根据当前语言加载对应的 markdown 文件
-    // 在生产环境中，文件在 dist/src/content/ 目录下
-    // 尝试多个可能的路径
-    const possiblePaths = [
-      `/src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`,
-      `./src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`,
-      `src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`
-    ];
+    // 开发环境和生产环境都直接从 /src/content/ 读取（Vite 会自动处理）
+    const filePath = `/src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`;
     
-    let markdown = null;
-    let lastError = null;
-    
-    // 尝试每个可能的路径
-    for (const path of possiblePaths) {
-      try {
-        const response = await fetch(path);
-        if (response.ok) {
-          markdown = await response.text();
-          break;
-        }
-      } catch (error) {
-        lastError = error;
-        continue;
-      }
+    // 直接获取文件内容
+    const response = await fetch(filePath);
+    if (!response.ok) {
+      throw new Error(`无法加载保修条款文件: ${filePath} (${response.status})`);
     }
-    
-    if (!markdown) {
-      throw lastError || new Error('无法找到保修条款文件');
-    }
+    const markdown = await response.text();
     
     // 简单的 markdown 转 HTML 转换
     const html = convertMarkdownToHTML(markdown);

@@ -12,9 +12,9 @@ const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 const warrantyTemplatePath = path.join(distDir, 'warranty', 'index.html');
 
-// 读取保修条款内容（从 public 目录，因为已经复制过了）
-const warrantyZhCNPath = path.join(distDir, 'src', 'content', 'warranty-zh-CN.md');
-const warrantyEnPath = path.join(distDir, 'src', 'content', 'warranty-en.md');
+// 读取保修条款内容（直接从源文件 src/content/ 读取）
+const warrantyZhCNPath = path.join(rootDir, 'src', 'content', 'warranty-zh-CN.md');
+const warrantyEnPath = path.join(rootDir, 'src', 'content', 'warranty-en.md');
 
 // Markdown 转 HTML 转换器（与 render-warranty.ts 保持一致）
 function convertMarkdownToHTML(markdown) {
