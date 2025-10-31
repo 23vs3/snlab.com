@@ -374,11 +374,6 @@
       color: var(--muted);
       font-size: 13px;
     }
-
-    .copyright {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.9rem;
       margin: var(--space-4) 0 0 0;
       padding-top: var(--space-4);
       border-top: var(--border);
@@ -474,10 +469,15 @@
     </div>
   </main>
 
-  <!-- 页脚（与 index.html 一致） -->
   <footer>
     <div class="container">
       <div class="footer-grid">
+        <!-- <div class="footer-col">
+          <h4>客户服务</h4>
+          <a href="#">配送与发货</a>
+          <a href="#">退货</a>
+          <a href="#">产品支持</a>
+        </div> -->
         <div class="footer-col">
           <h4 data-i18n="footer.policies">政策</h4>
           <a href="/warranty" data-i18n="footer.warranty">保修条款</a>
@@ -490,6 +490,12 @@
           <a href="#" class="wechat-qrcode-link" data-i18n="footer.wechat">微信公众号</a>
           <a href="https://www.xiaohongshu.com" class="footer-link" target="_blank" rel="noopener" data-i18n="footer.xiaohongshu">小红书</a>
         </div>
+        <!-- <div class="footer-col">
+          <h4>社交</h4>
+          <a href="#">Instagram</a>
+          <a href="#">X / Twitter</a>
+          <a href="#">YouTube</a>
+        </div> -->
       </div>
       <p class="copyright" data-i18n="footer.copyright">© SINIAN LAB 2025</p>
     </div>
@@ -565,72 +571,54 @@
   }
   </style>
   <script>
-    // 微信二维码弹窗逻辑（与 index.html 一致）
-    (function() {
+    (function(){
       const link = document.querySelector('.wechat-qrcode-link');
       const popup = document.getElementById('wechat-qrcode-popup');
-      
-      if (!link || !popup) return;
-
-      function updatePopupPosition() {
-        const rect = link.getBoundingClientRect();
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        popup.style.left = (rect.left + 90 + scrollLeft) + 'px';
-        popup.style.top = (rect.top + rect.height / 2 - popup.offsetHeight / 2 + window.pageYOffset) + 'px';
-      }
-
-      function showPopup() {
-        updatePopupPosition();
+      let tid;
+      let popupVisible = false;
+      function show(e) {
         popup.classList.add('show');
-        
-        // 移动端适配
-        if (window.innerWidth <= 780) {
-          popup.style.width = '94vw';
-          popup.style.maxWidth = '125px';
-          popup.style.left = 'auto';
-          popup.style.right = '18px';
-        }
+        void popup.offsetHeight;
+        const rect = link.getBoundingClientRect();
+        const popupH = popup.offsetHeight || 160;
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+        popup.style.left = (rect.left + 90 + scrollLeft) + 'px';
+        popup.style.top = (rect.top + rect.height/2 - popupH/2 + scrollTop) + 'px';
+        popup.style.opacity = 1;
+        popupVisible = true;
+        clearTimeout(tid);
       }
-
-      function hidePopup() {
-        popup.classList.remove('show');
+      function hide() {
+        popup.style.opacity = 0;
+        tid = setTimeout(()=>{ popup.classList.remove('show'); popupVisible=false;}, 200);
       }
-
-      // 桌面端：鼠标悬停显示
-      if (window.innerWidth > 780) {
-        link.addEventListener('mouseenter', showPopup);
-        link.addEventListener('mouseleave', (e) => {
-          if (!popup.contains(e.relatedTarget)) {
-            hidePopup();
-          }
-        });
-        popup.addEventListener('mouseenter', showPopup);
-        popup.addEventListener('mouseleave', hidePopup);
-      }
-
-      // 移动端和桌面端：点击显示/隐藏
-      link.addEventListener('click', (e) => {
+      // 判断是否移动端
+      function isMobile(){return window.innerWidth<=780;}
+      // PC端悬停
+      link.addEventListener('mouseenter', function(e){if(!isMobile())show(e)});
+      link.addEventListener('mouseleave', function(){if(!isMobile())hide()});
+      popup.addEventListener('mouseenter', function(e){if(!isMobile())show(e)});
+      popup.addEventListener('mouseleave', function(){if(!isMobile())hide()});
+      // 点击显示/关闭，移动端&PC端都支持
+      link.addEventListener('click', function(e){
         e.preventDefault();
-        if (popup.classList.contains('show')) {
-          hidePopup();
-        } else {
-          showPopup();
+        if(popup.classList.contains('show')){
+          hide();
+        }else{
+          show(e);
         }
       });
-
-      // 点击其他地方关闭
-      document.addEventListener('click', (e) => {
-        if (popup.classList.contains('show') && !link.contains(e.target) && !popup.contains(e.target)) {
-          hidePopup();
+      // 移动端点其他位置自动关闭
+      document.addEventListener('click', function(e){
+        // 只针对移动端并且弹窗当前可见
+        if(isMobile() && popupVisible) {
+          // 若点击的不是popup，且不是"微信公众号"按钮本身才关闭
+          if(!popup.contains(e.target) && !link.contains(e.target)){
+            hide();
+          }
         }
-      });
-
-      // 窗口大小改变时更新位置
-      window.addEventListener('resize', () => {
-        if (popup.classList.contains('show')) {
-          updatePopupPosition();
-        }
-      });
+      }, true);
     })();
   </script>
 
