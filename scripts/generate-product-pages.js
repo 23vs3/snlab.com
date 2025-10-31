@@ -65,24 +65,13 @@ products.forEach(product => {
   
   // 修改模板，添加默认的 productId 到 URL 查询参数
   // 这样当访问 /products/{productId}/ 时，JavaScript 可以正确识别
-  const modifiedTemplate = template.replace(
-    '<script type="module" src="/src/products-detail.ts"></script>',
-    `<script>
-      // 确保 URL 中包含 productId 参数（如果是从路径访问）
-      (function() {
-        const pathMatch = window.location.pathname.match(/\\/products\\/([^\\/]+)\\/?$/);
-        if (pathMatch && !window.location.search.includes('productId=')) {
-          const productId = pathMatch[1];
-          if (productId && productId !== 'index.html') {
-            const newUrl = new URL(window.location);
-            newUrl.searchParams.set('productId', productId);
-            window.history.replaceState({}, '', newUrl);
-          }
-        }
-      })();
-    </script>
-    <script type="module" src="/src/products-detail.ts"></script>`
-  );
+  // 查找并替换构建后的产品脚本标签（可能在 head 或 body 中）
+  let modifiedTemplate = template;
+  
+  // 注意：不需要添加 URL 处理脚本
+  // render-product-detail.ts 中的 getProductIdFromUrl() 已经可以从路径中读取 productId
+  // 它会优先从路径匹配 /products/{productId}/，所以无需修改 URL
+  // 直接使用模板即可
   
   fs.writeFileSync(productIndexPath, modifiedTemplate);
   console.log(`✅ 生成产品页面: /products/${product.productId}/index.html`);
