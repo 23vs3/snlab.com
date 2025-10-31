@@ -178,7 +178,6 @@ products.forEach(product => {
       updateLanguage(lang);
     });
   </script>`;
-  <script>
     // 备用初始化脚本：确保产品详情页能够加载
     console.log('[Product Page] Script loaded for product: ${product.productId}');
     console.log('[Product Page] Current pathname:', window.location.pathname);
