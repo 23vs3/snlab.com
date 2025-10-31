@@ -161,17 +161,26 @@ export function renderProductDetail(productId: string | null): void {
 export function initProductDetail(): void {
   // 确保 i18n 已初始化后再渲染
   const render = () => {
-    // 检查 i18n 是否已初始化（通过检查 getLang 方法）
+    // 检查 i18n 是否已初始化（通过检查 window.i18n 或直接检查）
     try {
-      const currentLang = i18n.getLang();
+      // 优先检查 window.i18n（i18n.ts 中会将实例暴露到 window）
+      const i18nInstance = (window as any).i18n || i18n;
+      if (!i18nInstance || !i18nInstance.getLang) {
+        // i18n 还未初始化，等待
+        setTimeout(render, 100);
+        return;
+      }
+      
+      const currentLang = i18nInstance.getLang();
       if (!currentLang) {
         // i18n 还未初始化，等待
-        setTimeout(render, 50);
+        setTimeout(render, 100);
         return;
       }
     } catch (e) {
       // i18n 还未初始化，等待
-      setTimeout(render, 50);
+      console.warn('i18n not ready yet, retrying...', e);
+      setTimeout(render, 100);
       return;
     }
 
@@ -197,13 +206,40 @@ export function initProductDetail(): void {
     }
   };
 
+  // 增加重试次数和延迟，确保所有依赖都已加载
+  const maxRetries = 30; // 最多重试 30 次（约 3 秒）
+  let retryCount = 0;
+  
+  const tryRender = () => {
+    retryCount++;
+    
+    if (retryCount > maxRetries) {
+      console.error('Failed to initialize product detail after max retries');
+      // 即使 i18n 未初始化，也尝试渲染（使用默认语言）
+      const productId = getProductIdFromUrl();
+      if (productId) {
+        renderProductDetail(productId);
+      } else if (products.length > 0) {
+        renderProductDetail(products[0].productId);
+      }
+      return;
+    }
+    
+    try {
+      render();
+    } catch (e) {
+      console.error('Error in render:', e);
+      setTimeout(tryRender, 100);
+    }
+  };
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(render, 100);
+      setTimeout(tryRender, 200);
     });
   } else {
-    // DOM 已准备好，等待 i18n 初始化
-    setTimeout(render, 100);
+    // DOM 已准备好，等待所有依赖加载
+    setTimeout(tryRender, 300);
   }
 }
 
