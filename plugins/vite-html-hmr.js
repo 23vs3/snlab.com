@@ -57,6 +57,22 @@ export function htmlHmrPlugin() {
               const content = fs.readFileSync(file, 'utf-8');
               if (!content.includes('/@vite/client')) {
                 console.log(`⚠️  ${file} 缺少热重载支持`);
+                console.log(`   请添加: <script type="module" src="/@vite/client"></script>`);
+              } else {
+                // 检查脚本顺序：@vite/client 应该在其他模块脚本之前
+                const clientScriptIndex = content.indexOf('src="/@vite/client"');
+                const bodyEndIndex = content.indexOf('</body>');
+                
+                if (clientScriptIndex !== -1 && bodyEndIndex !== -1) {
+                  // 检查 @vite/client 之前是否有其他 script type="module"
+                  const beforeClient = content.substring(Math.max(0, bodyEndIndex - 1000), clientScriptIndex);
+                  const moduleScriptMatch = beforeClient.match(/<script\s+type\s*=\s*["']module["'][^>]*>/);
+                  
+                  if (moduleScriptMatch) {
+                    console.log(`⚠️  ${file} 的 @vite/client 脚本应该在所有其他模块脚本之前`);
+                    console.log(`   建议调整脚本顺序，将 @vite/client 移到最前面`);
+                  }
+                }
               }
             } catch (e) {
               // 忽略无法读取的文件
