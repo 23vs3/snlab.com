@@ -91,10 +91,22 @@ products.forEach(product => {
       const productId = getProductIdFromPath();
       console.log('[Product Page] Force init called for productId:', productId);
       
+      // 首先检查脚本是否已加载
+      const scripts = document.querySelectorAll('script[type="module"]');
+      console.log('[Product Page] Found', scripts.length, 'ES module scripts');
+      scripts.forEach(function(script, index) {
+        console.log('[Product Page] Script', index + ':', script.src || 'inline');
+      });
+      
       // 检查是否可以通过 window 访问产品数据和渲染函数
       if (typeof window !== 'undefined') {
+        let attempts = 0;
+        const maxAttempts = 50; // 最多尝试 10 秒（200ms * 50）
+        
         // 等待一段时间让模块加载
         const checkInterval = setInterval(function() {
+          attempts++;
+          
           // 检查产品是否已渲染
           const productTitle = document.getElementById('product-title');
           if (productTitle && productTitle.textContent !== '加载中...') {
@@ -109,6 +121,7 @@ products.forEach(product => {
             try {
               window.initProductDetail();
               clearInterval(checkInterval);
+              return;
             } catch (e) {
               console.error('[Product Page] Error calling initProductDetail:', e);
             }
@@ -127,26 +140,51 @@ products.forEach(product => {
                 try {
                   window.renderProductDetail(productId);
                   clearInterval(checkInterval);
+                  return;
                 } catch (e) {
                   console.error('[Product Page] Error calling renderProductDetail:', e);
                 }
               }
             }
           }
-        }, 200);
-        
-        // 最多尝试 30 次（6 秒）
-        setTimeout(function() {
-          clearInterval(checkInterval);
-          const productTitle = document.getElementById('product-title');
-          if (productTitle && productTitle.textContent === '加载中...') {
-            console.error('[Product Page] Failed to initialize product detail after 6 seconds');
-            console.error('[Product Page] Module check - window.i18n:', typeof window.i18n);
-            console.error('[Product Page] Module check - window.products:', typeof window.products);
-            console.error('[Product Page] Module check - window.initProductDetail:', typeof window.initProductDetail);
-            console.error('[Product Page] Module check - window.renderProductDetail:', typeof window.renderProductDetail);
+          
+          // 如果模块未加载，尝试手动加载脚本
+          if (attempts === 5 && typeof window.i18n === 'undefined') {
+            console.warn('[Product Page] Module not loaded after 1 second, checking script loading...');
+            // 检查脚本标签是否存在于 DOM
+            const moduleScript = document.querySelector('script[type="module"][src*="product"]');
+            if (moduleScript) {
+              console.log('[Product Page] Found module script tag:', moduleScript.src);
+              // 检查是否有加载错误
+              moduleScript.addEventListener('error', function(e) {
+                console.error('[Product Page] Module script loading error:', e);
+              });
+              moduleScript.addEventListener('load', function() {
+                console.log('[Product Page] Module script loaded');
+              });
+            } else {
+              console.error('[Product Page] Module script tag not found in DOM!');
+            }
           }
-        }, 6000);
+          
+          // 达到最大尝试次数
+          if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            const productTitle = document.getElementById('product-title');
+            if (productTitle && productTitle.textContent === '加载中...') {
+              console.error('[Product Page] Failed to initialize product detail after', maxAttempts * 200, 'ms');
+              console.error('[Product Page] Module check - window.i18n:', typeof window.i18n);
+              console.error('[Product Page] Module check - window.products:', typeof window.products);
+              console.error('[Product Page] Module check - window.initProductDetail:', typeof window.initProductDetail);
+              console.error('[Product Page] Module check - window.renderProductDetail:', typeof window.renderProductDetail);
+              
+              // 最后尝试：直接通过 fetch 加载脚本
+              console.warn('[Product Page] Attempting to manually load module...');
+              const modulePath = '/assets/product-' + (document.querySelector('script[type="module"][src*="product"]')?.src.match(/product-([^.]+)/)?.[1] || '') + '.js';
+              console.log('[Product Page] Trying to fetch:', modulePath);
+            }
+          }
+        }, 200);
       }
     }
     
