@@ -486,3 +486,8 @@ export const products: Product[] = [
   }
 ];
 
+// 如果是在浏览器环境中，将 products 暴露到 window（供备用脚本使用）
+if (typeof window !== 'undefined') {
+  (window as any).products = products;
+}
+
