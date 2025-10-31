@@ -487,24 +487,86 @@
         </div>
         <div class="footer-col">
           <h4 data-i18n="footer.followUs">关注我们</h4>
-          <a href="https://www.xiaohongshu.com" target="_blank" rel="noopener" data-i18n="footer.xiaohongshu">小红书</a>
           <a href="#" class="wechat-qrcode-link" data-i18n="footer.wechat">微信公众号</a>
+          <a href="https://www.xiaohongshu.com" class="footer-link" target="_blank" rel="noopener" data-i18n="footer.xiaohongshu">小红书</a>
         </div>
       </div>
       <p class="copyright" data-i18n="footer.copyright">© SINIAN LAB 2025</p>
     </div>
   </footer>
-
-  <!-- 微信二维码弹窗（与 index.html 一致） -->
-  <div id="wechat-qrcode-popup" style="display: none; position: fixed; z-index: 9999; background: Canvas; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); pointer-events: auto;">
-    <img src="/images/wx_qrcode.png" alt="微信公众号二维码" style="width: 200px; height: 200px; display: block; margin-bottom: 12px;" />
-    <p style="margin: 0; font-size: 14px; color: var(--muted); text-align: center;" data-i18n="common.scanToFollow">扫码关注</p>
+  
+  <!-- 微信公众号二维码弹窗 -->
+  <div id="wechat-qrcode-popup">
+    <img src="/images/wx_qrcode.png" alt="微信公众号二维码">
+    <div class="desc" data-i18n="common.scanToFollow">扫码关注</div>
   </div>
-
+  <style>
+  #wechat-qrcode-popup {
+    display: none;
+    position: absolute;
+    z-index: 9999;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 16px 0 8px 0;
+    min-width: 0;
+    max-width: 160px;
+    pointer-events: auto;
+    transition: opacity .22s cubic-bezier(.4,0,.2,1);
+    opacity: 0;
+  }
+  #wechat-qrcode-popup.show {
+    display: block;
+    opacity: 1;
+  }
+  #wechat-qrcode-popup img {
+    display: block;
+    width: 128px;
+    height: 128px;
+    margin: 0 auto;
+    border-radius: 6px;
+  }
+  #wechat-qrcode-popup .desc {
+    text-align: center;
+    color: #666;
+    margin-top: 12px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    font-weight: 400;
+  }
+  @media (max-width: 780px) {
+    #wechat-qrcode-popup {
+      max-width: 125px !important;
+      min-width: unset !important;
+      width: 94vw !important;
+      left: auto !important;
+      right: 18px !important;
+      padding: 8px 0 4px 0 !important;
+      border-radius: 8px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #wechat-qrcode-popup img {
+      width: 90px !important;
+      height: 90px !important;
+      object-fit: contain !important;
+      aspect-ratio: 1/1 !important;
+      margin: 0 auto !important;
+      border-radius: 5px !important;
+      display: block !important;
+      background: #fff !important;
+    }
+    #wechat-qrcode-popup .desc {
+      font-size: 13px !important;
+      margin-top: 6px !important;
+    }
+  }
+  </style>
   <script>
     // 微信二维码弹窗逻辑（与 index.html 一致）
     (function() {
-      let popupVisible = false;
       const link = document.querySelector('.wechat-qrcode-link');
       const popup = document.getElementById('wechat-qrcode-popup');
       
@@ -519,32 +581,23 @@
 
       function showPopup() {
         updatePopupPosition();
-        popup.style.display = 'block';
-        popupVisible = true;
+        popup.classList.add('show');
         
         // 移动端适配
-        if (window.innerWidth <= 680) {
-          popup.style.width = '180px';
-          popup.style.padding = '16px';
-          popup.querySelector('img').style.width = '150px';
-          popup.querySelector('img').style.height = '150px';
-          popup.style.transform = 'translate(-50%, -50%)';
-          popup.style.left = '50%';
-          popup.style.top = '50%';
-        } else {
-          popup.style.transform = 'none';
-          popup.style.left = popup.style.left;
-          popup.style.top = popup.style.top;
+        if (window.innerWidth <= 780) {
+          popup.style.width = '94vw';
+          popup.style.maxWidth = '125px';
+          popup.style.left = 'auto';
+          popup.style.right = '18px';
         }
       }
 
       function hidePopup() {
-        popup.style.display = 'none';
-        popupVisible = false;
+        popup.classList.remove('show');
       }
 
       // 桌面端：鼠标悬停显示
-      if (window.innerWidth > 680) {
+      if (window.innerWidth > 780) {
         link.addEventListener('mouseenter', showPopup);
         link.addEventListener('mouseleave', (e) => {
           if (!popup.contains(e.relatedTarget)) {
@@ -558,7 +611,7 @@
       // 移动端和桌面端：点击显示/隐藏
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        if (popupVisible) {
+        if (popup.classList.contains('show')) {
           hidePopup();
         } else {
           showPopup();
@@ -567,14 +620,14 @@
 
       // 点击其他地方关闭
       document.addEventListener('click', (e) => {
-        if (popupVisible && !link.contains(e.target) && !popup.contains(e.target)) {
+        if (popup.classList.contains('show') && !link.contains(e.target) && !popup.contains(e.target)) {
           hidePopup();
         }
       });
 
       // 窗口大小改变时更新位置
       window.addEventListener('resize', () => {
-        if (popupVisible) {
+        if (popup.classList.contains('show')) {
           updatePopupPosition();
         }
       });
