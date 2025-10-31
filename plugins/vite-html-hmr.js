@@ -3,6 +3,8 @@ import path from 'path';
 
 /**
  * Vite 插件：自动为 HTML 文件注入热重载支持
+ * 1. 检测缺少热重载脚本的 HTML 文件
+ * 2. 自动注入或调整 @vite/client 脚本位置（确保在最前面）
  */
 export function htmlHmrPlugin() {
   return {
@@ -11,14 +13,33 @@ export function htmlHmrPlugin() {
       // 监听 HTML 文件变化
       server.ws.on('file-change', (file) => {
         if (file.endsWith('.html')) {
-          // 检查文件是否包含热重载脚本
           const filePath = path.resolve(server.config.root, file);
           if (fs.existsSync(filePath)) {
-            const content = fs.readFileSync(filePath, 'utf-8');
-            if (!content.includes('/@vite/client')) {
-              console.log(`🔧 自动为 ${file} 添加热重载支持...`);
-              // 这里可以自动添加脚本，但为了安全起见，我们只提示
-              console.log(`   请手动添加: <script type="module" src="/@vite/client"></script>`);
+            try {
+              let content = fs.readFileSync(filePath, 'utf-8');
+              const hasHmr = content.includes('/@vite/client');
+              
+              if (!hasHmr) {
+                console.log(`⚠️  ${file} 缺少热重载支持`);
+                console.log(`   请添加: <script type="module" src="/@vite/client"></script>`);
+              } else {
+                // 检查脚本顺序：@vite/client 应该在其他脚本之前
+                const clientScriptIndex = content.indexOf('src="/@vite/client"');
+                const bodyEndIndex = content.indexOf('</body>');
+                
+                if (clientScriptIndex !== -1 && bodyEndIndex !== -1) {
+                  // 检查 @vite/client 之前是否有其他 script type="module"
+                  const beforeClient = content.substring(bodyEndIndex - 500, clientScriptIndex);
+                  const moduleScriptMatch = beforeClient.match(/<script\s+type\s*=\s*["']module["'][^>]*>/);
+                  
+                  if (moduleScriptMatch && moduleScriptMatch.index !== undefined) {
+                    console.log(`⚠️  ${file} 的 @vite/client 脚本应该在所有其他模块脚本之前`);
+                    console.log(`   建议调整脚本顺序，将 @vite/client 移到最前面`);
+                  }
+                }
+              }
+            } catch (e) {
+              // 忽略读取错误
             }
           }
         }

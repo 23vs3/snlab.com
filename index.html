@@ -848,6 +848,13 @@
       }, 2000);
     }
   </script>
+  
+  <!-- Vite 客户端脚本，支持热重载（必须在最前面） -->
+  <script type="module" src="/@vite/client"></script>
+  
+  <!-- 主应用脚本 -->
+  <script type="module" src="/src/main.ts"></script>
+  
   <!-- 全局 toast 提示 -->
   <div id="global-toast" style="display:none;position:fixed;left:50%;top:18%;z-index:9999;transform:translateX(-50%);background:rgba(30,41,59,0.94);color:#fff;padding:12px 28px;border-radius:8px;font-size:16px;box-shadow:0 8px 24px rgba(30,41,59,.18);pointer-events:none;transition:opacity 0.2s;opacity:0;letter-spacing:1px;line-height:1.6;text-align:center;max-width:80vw;">
     这里是全局toast
