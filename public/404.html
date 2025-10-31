@@ -9,11 +9,21 @@
     (function() {
       const pathname = window.location.pathname;
       
-      // 处理产品详情页路由：/products/{productId}
+      // 处理产品详情页路由：/products/{productId} → /products/{productId}/
+      // 现在构建时会为每个产品生成 /products/{productId}/index.html
       const productMatch = pathname.match(/^\/products\/([^\/]+)\/?$/);
       if (productMatch) {
         const productId = productMatch[1];
-        window.location.href = `/products/index.html?productId=${productId}`;
+        // 如果 URL 不带尾部斜杠，重定向到带斜杠的版本（GitHub Pages 需要）
+        if (!pathname.endsWith('/')) {
+          window.location.href = `/products/${productId}/`;
+          return;
+        }
+        // 如果已经在带斜杠的路径上，说明可能是新部署的产品页面还未生成，稍等片刻再重试
+        // 或者回退到查询参数方式
+        setTimeout(() => {
+          window.location.href = `/products/index.html?productId=${productId}`;
+        }, 100);
         return;
       }
       
