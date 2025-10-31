@@ -15,16 +15,34 @@ export async function renderWarrantyContent(): Promise<void> {
   
   try {
     // 根据当前语言加载对应的 markdown 文件
-    const markdownPath = currentLang === 'zh-CN' 
-      ? '/src/content/warranty-zh-CN.md'
-      : '/src/content/warranty-en.md';
+    // 在生产环境中，文件在 dist/src/content/ 目录下
+    // 尝试多个可能的路径
+    const possiblePaths = [
+      `/src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`,
+      `./src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`,
+      `src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`
+    ];
     
-    const response = await fetch(markdownPath);
-    if (!response.ok) {
-      throw new Error(`Failed to load warranty content: ${response.statusText}`);
+    let markdown = null;
+    let lastError = null;
+    
+    // 尝试每个可能的路径
+    for (const path of possiblePaths) {
+      try {
+        const response = await fetch(path);
+        if (response.ok) {
+          markdown = await response.text();
+          break;
+        }
+      } catch (error) {
+        lastError = error;
+        continue;
+      }
     }
     
-    const markdown = await response.text();
+    if (!markdown) {
+      throw lastError || new Error('无法找到保修条款文件');
+    }
     
     // 简单的 markdown 转 HTML 转换
     const html = convertMarkdownToHTML(markdown);
