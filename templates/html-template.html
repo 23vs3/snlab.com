@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{TITLE}} - SINIAN LAB</title>
+  <style>
+    :root {
+      /* 基础主题与尺寸变量 */
+      color-scheme: light dark;
+      --max-w: 1200px;
+      --space-1: 8px;
+      --space-2: 12px;
+      --space-3: 16px;
+      --space-4: 24px;
+      --space-5: 32px;
+      --space-6: 18px;
+      --radius: 12px;
+      --border: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+      --muted: color-mix(in srgb, CanvasText 65%, transparent);
+      --elev: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+      background: Canvas;
+      color: CanvasText;
+      min-height: 100dvh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* 头部导航 */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: saturate(180%) blur(8px);
+      background: color-mix(in srgb, Canvas 75%, transparent);
+      border-bottom: var(--border);
+    }
+    .container {
+      width: min(100% - 32px, var(--max-w));
+      margin-inline: auto;
+    }
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+    }
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-logo {
+      height: 1.5em;
+      width: auto;
+      aspect-ratio: 4/3;
+      object-fit: contain;
+    }
+    .nav-links {
+      display: flex;
+      gap: var(--space-4);
+      align-items: center;
+    }
+    .nav-links a { opacity: 0.9; }
+    .nav-actions { display: flex; gap: var(--space-3); }
+    .menu-btn { display: none; border: 0; background: transparent; font-size: 20px; }
+
+    /* 主体与区块 */
+    main { display: grid; gap: var(--space-6); }
+    section { padding: var(--space-6) 0; }
+    .section-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: var(--space-4); }
+    .section-head h2 { margin: 0; font-size: 24px; }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    /* 页脚 */
+    footer { border-top: var(--border); padding: var(--space-6) 0; margin-top: var(--space-6); }
+    .footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+    .footer-col h4 { margin: 0 0 var(--space-3); font-size: 16px; }
+    .footer-col a { display: block; opacity: 0.8; margin: 8px 0; }
+    .copyright { margin-top: var(--space-5); color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 680px) {
+      .nav-links { display: none; }
+      .menu-btn { display: inline-grid; }
+      .section-head { flex-direction: column; align-items: start; gap: var(--space-2); }
+    }
+  </style>
+</head>
+<body>
+  <div id="top"></div>
+  <header>
+    <div class="container nav-bar">
+      <a href="/" class="brand">
+        SINIAN LAB
+        <img src="https://picsum.photos/seed/bo-hero1/1600/900" alt="品牌标志" class="brand-logo" />
+      </a>
+      <nav class="nav-links" aria-label="主导航">
+        <a href="/#products">产品</a>
+        <a href="/#support">购买与支持</a>
+        <a href="/#stories">资讯订阅</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="menu-btn" aria-label="打开菜单">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    {{CONTENT}}
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>关于我们</h4>
+          <a href="#">责任</a>
+          <a href="#">新闻</a>
+          <a href="#">工作机会</a>
+        </div>
+        <div class="footer-col">
+          <h4>社交</h4>
+          <a href="#">Instagram</a>
+          <a href="#">X / Twitter</a>
+          <a href="#">YouTube</a>
+        </div>
+      </div>
+      <p class="copyright">© SINIAN LAB 2025</p>
+    </div>
+  </footer>
+
+  <!-- 自动包含的脚本 -->
+  <script type="module" src="/src/main.ts"></script>
+  
+  <!-- Vite 客户端脚本，支持热重载 -->
+  <script type="module" src="/@vite/client"></script>
+</body>
+</html>

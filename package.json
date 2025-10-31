@@ -1,0 +1,23 @@
+{
+  "name": "sinian-lab-website",
+  "version": "1.0.0",
+  "description": "SINIAN LAB 品牌官网",
+  "main": "dist/index.html",
+  "scripts": {
+    "dev": "vite & sleep 3 && open http://localhost:3001/qr-display.html",
+    "dev:qr": "vite && open http://localhost:3001/qr-display.html",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "create-page": "node scripts/create-page.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0"
+  },
+  "type": "module"
+}
+

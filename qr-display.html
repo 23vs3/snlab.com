@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>手机扫码预览 - SINIAN LAB</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --secondary: #64748b;
+      --success: #10b981;
+      --bg: #f8fafc;
+      --text: #1e293b;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .subtitle {
+      color: var(--secondary);
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
+
+    .qr-container {
+      margin: 24px 0;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: var(--radius);
+      border: 2px dashed var(--border);
+    }
+
+    .qr-code {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .qr-code img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .url-display {
+      margin-top: 16px;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      color: var(--secondary);
+      word-break: break-all;
+    }
+
+    .instructions {
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .instructions h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .step-number {
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status.online {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .status.offline {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .features {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .feature {
+      padding: 12px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .feature-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 16px; }
+      .card { padding: 24px 20px; }
+      .qr-code { width: 180px; height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">SL</div>
+      <h1>手机扫码预览</h1>
+      <p class="subtitle">实时查看开发效果，支持热重载 🔥</p>
+      
+      <div class="qr-container">
+        <div class="qr-code">
+          <img src="qrcode.png" alt="扫码访问项目" />
+        </div>
+        <div class="url-display" id="url-display">http://192.168.3.150:3001</div>
+      </div>
+
+      <div class="instructions">
+        <h3>使用说明</h3>
+        <div class="step">
+          <div class="step-number">1</div>
+          <div>用手机扫描上方二维码</div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div>确保手机和电脑在同一WiFi网络</div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div>代码修改后手机端会自动刷新</div>
+        </div>
+      </div>
+
+      <div class="status" id="status">
+        <div class="status-dot"></div>
+        <span>检查连接状态...</span>
+      </div>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <div>热重载</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <div>移动端</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔄</div>
+          <div>实时同步</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🎯</div>
+          <div>开发调试</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 检查服务器状态
+    async function checkStatus() {
+      const statusEl = document.getElementById('status');
+      const urlDisplay = document.getElementById('url-display');
+      
+      try {
+        const response = await fetch('http://192.168.3.150:3001', { 
+          method: 'HEAD',
+          mode: 'no-cors'
+        });
+        
+        statusEl.className = 'status online';
+        statusEl.innerHTML = '<div class="status-dot"></div><span>✅ 开发服务器运行中</span>';
+      } catch (error) {
+        statusEl.className = 'status offline';
+        statusEl.innerHTML = '<div class="status-dot"></div><span>❌ 无法连接到开发服务器</span>';
+      }
+    }
+
+    // 更新URL显示
+    function updateUrl() {
+      const urlDisplay = document.getElementById('url-display');
+      const currentUrl = window.location.hostname === '192.168.3.150' 
+        ? 'http://192.168.3.150:3001' 
+        : 'http://192.168.3.150:3001';
+      urlDisplay.textContent = currentUrl;
+    }
+
+    // 页面加载时检查状态
+    document.addEventListener('DOMContentLoaded', () => {
+      updateUrl();
+      checkStatus();
+      
+      // 每30秒检查一次状态
+      setInterval(checkStatus, 30000);
+    });
+
+    // 监听网络状态变化
+    window.addEventListener('online', checkStatus);
+    window.addEventListener('offline', () => {
+      const statusEl = document.getElementById('status');
+      statusEl.className = 'status offline';
+      statusEl.innerHTML = '<div class="status-dot"></div><span>❌ 网络连接断开</span>';
+    });
+  </script>
+  
+  <!-- Vite 客户端脚本，支持热重载 -->
+  <script type="module" src="/@vite/client"></script>
+</body>
+</html>
+
