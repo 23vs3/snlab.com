@@ -64,22 +64,56 @@ products.forEach(product => {
   const productIndexPath = path.join(productDir, 'index.html');
   
   // 从构建后的 products-data JS 文件中读取产品数据
-  const productsDataFiles = fs.readdirSync(path.join(distDir, 'assets')).filter(f => f.startsWith('products-data-') && f.endsWith('.js'));
+  const assetsDir = path.join(distDir, 'assets');
+  let productsDataFiles = [];
+  
+  if (fs.existsSync(assetsDir)) {
+    productsDataFiles = fs.readdirSync(assetsDir).filter(f => f.startsWith('products-data-') && f.endsWith('.js'));
+  }
   
   let productDataJson = null;
   if (productsDataFiles.length > 0) {
-    const productsDataFile = path.join(distDir, 'assets', productsDataFiles[0]);
+    const productsDataFile = path.join(assetsDir, productsDataFiles[0]);
     const productsDataJs = fs.readFileSync(productsDataFile, 'utf-8');
-    // 尝试提取 products 数组
+    // 尝试提取 products 数组（使用和 generate-index.js 相同的逻辑）
     try {
-      // 使用正则提取数组内容
-      const arrayMatch = productsDataJs.match(/export\s+const\s+products\s*=\s*(\[[\s\S]*?\]);/);
-      if (arrayMatch) {
-        // 安全地评估（仅在构建时执行）
-        const moduleCode = productsDataJs.replace(/export\s+const\s+products/, 'const products');
-        const func = new Function('return ' + moduleCode.split('=')[1].split(';')[0] + ';');
-        const allProducts = func();
-        productDataJson = allProducts.find(p => p.productId === product.productId);
+      // 使用手动括号匹配算法，处理压缩后的代码格式 const e=[...];
+      const constMatch = productsDataJs.match(/const\s+\w+\s*=\s*(\[)/);
+      if (constMatch && constMatch.index !== undefined) {
+        let startIndex = constMatch.index + constMatch[0].length - 1; // -1 因为 [ 已经在匹配中
+        let depth = 0;
+        let inString = false;
+        let stringChar = null;
+        let i = startIndex;
+        
+        for (; i < productsDataJs.length; i++) {
+          const char = productsDataJs[i];
+          const prevChar = i > 0 ? productsDataJs[i - 1] : null;
+          const isEscaped = prevChar === '\\';
+          
+          if (!isEscaped) {
+            if ((char === '"' || char === "'") && !inString) {
+              inString = true;
+              stringChar = char;
+            } else if (char === stringChar && inString) {
+              inString = false;
+              stringChar = null;
+            } else if (!inString) {
+              if (char === '[') depth++;
+              if (char === ']') {
+                depth--;
+                if (depth === 0) {
+                  // 找到数组结束
+                  const arrayMatch = productsDataJs.substring(startIndex, i + 1);
+                  const func = new Function('return ' + arrayMatch);
+                  const allProducts = func();
+                  productDataJson = allProducts.find(p => p.productId === product.productId);
+                  break;
+                }
+              }
+            }
+          }
+        }
       }
     } catch (e) {
       console.warn(`无法从构建文件提取产品数据:`, e);
