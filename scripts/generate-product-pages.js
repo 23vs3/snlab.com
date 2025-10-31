@@ -146,6 +146,87 @@ products.forEach(product => {
     `<title>${productDataJson.name[defaultLang]} - SINIAN LAB</title>`
   );
   
+  // 内联产品特性（features）
+  if (productDataJson.features && Array.isArray(productDataJson.features)) {
+    const featuresHtml = productDataJson.features.map(feature => {
+      const icon = feature.icon || '✨';
+      const title = feature.title[defaultLang] || feature.title || '';
+      const description = feature.description[defaultLang] || feature.description || '';
+      return `
+          <div class="feature-card">
+            <div class="feature-icon">${icon}</div>
+            <h3>${title}</h3>
+            <p>${description}</p>
+          </div>
+        `;
+    }).join('');
+    
+    modifiedTemplate = modifiedTemplate.replace(
+      /<div class="features-grid" id="features-grid">[\s\S]*?<\/div>/,
+      `<div class="features-grid" id="features-grid">${featuresHtml}</div>`
+    );
+  }
+  
+  // 内联产品规格（specs）
+  if (productDataJson.specs) {
+    let specsHtml = '';
+    
+    // 音频规格
+    if (productDataJson.specs.audio && productDataJson.specs.audio.items) {
+      const audioLabel = productDataJson.specs.audio.label[defaultLang] || productDataJson.specs.audio.label || '音频';
+      const audioItems = productDataJson.specs.audio.items.map(item => {
+        const name = item.name[defaultLang] || item.name || '';
+        const value = item.value[defaultLang] || item.value || '';
+        return `
+            <li>
+              <span class="spec-label">${name}</span>
+              <span class="spec-value">${value}</span>
+            </li>
+          `;
+      }).join('');
+      
+      specsHtml += `
+        <div class="spec-group">
+          <h3>${audioLabel}</h3>
+          <ul class="spec-list">
+            ${audioItems}
+          </ul>
+        </div>
+      `;
+    }
+    
+    // 物理规格
+    if (productDataJson.specs.physical && productDataJson.specs.physical.items) {
+      const physicalLabel = productDataJson.specs.physical.label[defaultLang] || productDataJson.specs.physical.label || '物理';
+      const physicalItems = productDataJson.specs.physical.items.map(item => {
+        const name = item.name[defaultLang] || item.name || '';
+        const value = item.value[defaultLang] || item.value || '';
+        return `
+            <li>
+              <span class="spec-label">${name}</span>
+              <span class="spec-value">${value}</span>
+            </li>
+          `;
+      }).join('');
+      
+      specsHtml += `
+        <div class="spec-group">
+          <h3>${physicalLabel}</h3>
+          <ul class="spec-list">
+            ${physicalItems}
+          </ul>
+        </div>
+      `;
+    }
+    
+    if (specsHtml) {
+      modifiedTemplate = modifiedTemplate.replace(
+        /<div class="specs-grid" id="specs-grid">[\s\S]*?<\/div>/,
+        `<div class="specs-grid" id="specs-grid">${specsHtml}</div>`
+      );
+    }
+  }
+  
   // 添加一个简单的内联脚本，用于语言切换和完整数据加载（可选）
   const inlineScript = `
   <script>
@@ -169,6 +250,53 @@ products.forEach(product => {
       });
       if (PRODUCT_DATA.name && PRODUCT_DATA.name[lang]) {
         document.title = PRODUCT_DATA.name[lang] + ' - SINIAN LAB';
+      }
+      
+      // 更新特性（features）
+      if (PRODUCT_DATA.features && Array.isArray(PRODUCT_DATA.features)) {
+        const featuresGrid = document.getElementById('features-grid');
+        if (featuresGrid) {
+          featuresGrid.innerHTML = PRODUCT_DATA.features.map(function(feature) {
+            const icon = feature.icon || '✨';
+            const title = feature.title[lang] || feature.title || '';
+            const description = feature.description[lang] || feature.description || '';
+            return '<div class="feature-card"><div class="feature-icon">' + icon + '</div><h3>' + title + '</h3><p>' + description + '</p></div>';
+          }).join('');
+        }
+      }
+      
+      // 更新规格（specs）
+      if (PRODUCT_DATA.specs) {
+        const specsGrid = document.getElementById('specs-grid');
+        if (specsGrid) {
+          let specsHtml = '';
+          
+          // 音频规格
+          if (PRODUCT_DATA.specs.audio && PRODUCT_DATA.specs.audio.items) {
+            const audioLabel = PRODUCT_DATA.specs.audio.label[lang] || PRODUCT_DATA.specs.audio.label || '音频';
+            const audioItems = PRODUCT_DATA.specs.audio.items.map(function(item) {
+              const name = item.name[lang] || item.name || '';
+              const value = item.value[lang] || item.value || '';
+              return '<li><span class="spec-label">' + name + '</span><span class="spec-value">' + value + '</span></li>';
+            }).join('');
+            specsHtml += '<div class="spec-group"><h3>' + audioLabel + '</h3><ul class="spec-list">' + audioItems + '</ul></div>';
+          }
+          
+          // 物理规格
+          if (PRODUCT_DATA.specs.physical && PRODUCT_DATA.specs.physical.items) {
+            const physicalLabel = PRODUCT_DATA.specs.physical.label[lang] || PRODUCT_DATA.specs.physical.label || '物理';
+            const physicalItems = PRODUCT_DATA.specs.physical.items.map(function(item) {
+              const name = item.name[lang] || item.name || '';
+              const value = item.value[lang] || item.value || '';
+              return '<li><span class="spec-label">' + name + '</span><span class="spec-value">' + value + '</span></li>';
+            }).join('');
+            specsHtml += '<div class="spec-group"><h3>' + physicalLabel + '</h3><ul class="spec-list">' + physicalItems + '</ul></div>';
+          }
+          
+          if (specsHtml) {
+            specsGrid.innerHTML = specsHtml;
+          }
+        }
       }
     }
     
