@@ -22,9 +22,19 @@ function setupLangToggle(): void {
   
   if ((!langToggleDesktop || !langDropdownDesktop) && (!langToggleMobile || !langDropdownMobile)) {
     // 如果按钮不存在，稍后重试（可能是动态加载的 header）
-    setTimeout(setupLangToggle, 100);
+    // 增加重试次数和延迟，确保在 header 加载后能够初始化
+    const retryCount = (setupLangToggle as any).retryCount || 0;
+    if (retryCount < 20) { // 最多重试 20 次（约 2 秒）
+      (setupLangToggle as any).retryCount = retryCount + 1;
+      setTimeout(setupLangToggle, 100);
+    } else {
+      console.warn('Language toggle buttons not found after multiple retries');
+    }
     return;
   }
+  
+  // 重置重试计数
+  (setupLangToggle as any).retryCount = 0;
 
   // 设置全局点击处理器（只绑定一次）
   if (!langToggleInitialized) {
@@ -131,7 +141,7 @@ function setupGlobalClickHandler(): void {
   document.addEventListener('click', globalClickHandler, true);
 }
 
-function openLangDropdown(langDropdown?: HTMLElement, langToggle?: HTMLElement): void {
+function openLangDropdown(langDropdown?: HTMLElement | null, langToggle?: HTMLElement | null): void {
   if (!langDropdown) langDropdown = document.getElementById('lang-dropdown') || document.getElementById('lang-dropdown-mobile');
   if (!langToggle) langToggle = document.getElementById('lang-toggle') || document.getElementById('lang-toggle-mobile');
   
@@ -141,7 +151,7 @@ function openLangDropdown(langDropdown?: HTMLElement, langToggle?: HTMLElement):
   }
 }
 
-function closeLangDropdown(langDropdown?: HTMLElement, langToggle?: HTMLElement): void {
+function closeLangDropdown(langDropdown?: HTMLElement | null, langToggle?: HTMLElement | null): void {
   if (langDropdown && langToggle) {
     langDropdown.classList.remove('show');
     langToggle.setAttribute('aria-expanded', 'false');
@@ -211,5 +221,7 @@ export function setupLangToggleAfterHeaderLoad(): void {
 // 将函数暴露到 window，供 load-header.js 调用
 if (typeof window !== 'undefined') {
   (window as any).setupLangToggleAfterHeaderLoad = setupLangToggleAfterHeaderLoad;
+  // 也暴露 initI18n 函数，作为备用方案
+  (window as any).initI18n = initI18n;
 }
 

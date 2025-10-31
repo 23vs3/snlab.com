@@ -8,7 +8,6 @@ import { renderProductsList } from './components/render-products.js';
 class App {
   private carousel: Carousel | null = null;
   private navigation: Navigation | null = null;
-  private smoothScroll: SmoothScroll | null = null;
 
   constructor() {
     this.init();
@@ -47,7 +46,7 @@ class App {
   }
 
   private initializeSmoothScroll(): void {
-    this.smoothScroll = new SmoothScroll();
+    new SmoothScroll();
   }
 
   public destroy(): void {
@@ -57,9 +56,22 @@ class App {
 }
 
 // 初始化应用
-document.addEventListener('DOMContentLoaded', () => {
+// 确保即使 header 还未加载，也能正常初始化轮播和产品列表
+function initApp() {
+  // 直接初始化 App，不等待 header（header 会在 load-header.js 中处理）
+  // 这样可以确保轮播和产品列表能够正常显示
   new App();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // 使用较小的延迟，确保 DOM 完全就绪
+    setTimeout(initApp, 100);
+  });
+} else {
+  // DOM 已经准备好
+  setTimeout(initApp, 100);
+}
 
 // 导出供其他模块使用
 export { App };

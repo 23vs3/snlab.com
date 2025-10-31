@@ -73,18 +73,55 @@ async function loadHeader() {
     initMobileMenu();
     
     // 初始化国际化（header 加载后，延迟一点确保按钮已渲染）
-    setTimeout(() => {
+    // 使用多重检查确保在模块加载后也能初始化
+    let retryCount = 0;
+    const maxRetries = 30; // 最多重试 30 次（约 3 秒）
+    
+    function ensureLangToggleInit() {
+      retryCount++;
+      
       if (typeof window !== 'undefined' && window.setupLangToggleAfterHeaderLoad) {
-        window.setupLangToggleAfterHeaderLoad();
-      } else {
-        // 如果函数还没有加载，再等一会
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.setupLangToggleAfterHeaderLoad) {
-            window.setupLangToggleAfterHeaderLoad();
-          }
-        }, 300);
+        try {
+          window.setupLangToggleAfterHeaderLoad();
+          // 成功初始化后不再重试
+          return;
+        } catch (e) {
+          console.warn('Error calling setupLangToggleAfterHeaderLoad:', e);
+        }
       }
-    }, 150);
+      
+      // 如果函数还没有加载且未超过最大重试次数，继续重试
+      if (retryCount < maxRetries) {
+        setTimeout(ensureLangToggleInit, 100);
+      } else {
+        console.warn('setupLangToggleAfterHeaderLoad not available after', maxRetries, 'retries');
+        // 最后尝试直接调用 setupLangToggle（如果可用）
+        if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.setLang === 'function') {
+          console.log('Attempting alternative initialization...');
+          // 尝试手动初始化语言切换按钮
+          setTimeout(() => {
+            const langToggleDesktop = document.getElementById('lang-toggle');
+            const langToggleMobile = document.getElementById('lang-toggle-mobile');
+            if (langToggleDesktop || langToggleMobile) {
+              console.log('Language toggle buttons found, but setupLangToggleAfterHeaderLoad not available');
+              // 如果 initI18n 模块已加载，直接调用
+              if (window.initI18n && typeof window.initI18n === 'function') {
+                try {
+                  window.initI18n();
+                } catch (e) {
+                  console.error('Error calling initI18n:', e);
+                }
+              }
+            }
+          }, 200);
+        }
+      }
+    }
+    
+    // 立即尝试一次，然后延迟尝试
+    ensureLangToggleInit();
+    setTimeout(() => ensureLangToggleInit(), 150);
+    setTimeout(() => ensureLangToggleInit(), 500); // 额外的重试，确保在慢速加载时也能工作
     
   } catch (error) {
     console.error('Error loading header:', error);
