@@ -45,7 +45,7 @@ export interface NavigationItem {
 }
 
 // 媒体播放相关类型
-export interface MediaElement extends HTMLVideoElement {
+export interface MediaElement extends Omit<HTMLVideoElement, 'loop'> {
   loop?: boolean;
 }
 

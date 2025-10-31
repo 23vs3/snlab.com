@@ -7,8 +7,8 @@ export class Carousel {
   private btnPrev: HTMLButtonElement;
   private btnNext: HTMLButtonElement;
   private dotsWrap: HTMLElement;
-  private dots: HTMLButtonElement[];
-  private allSlides: HTMLElement[];
+  private dots: HTMLButtonElement[] = [];
+  private allSlides: HTMLElement[] = [];
   
   private state: CarouselState;
   private config: CarouselConfig;
@@ -268,7 +268,6 @@ export class Carousel {
     
     // 防止在边界位置滑动时出现异常
     const threshold = this.carousel.clientWidth * 0.15; // 降低阈值，提高灵敏度
-    const total = this.slides.length;
     
     if (Math.abs(this.state.deltaX) > threshold) {
       if (this.state.deltaX > 0) {

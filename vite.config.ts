@@ -3,6 +3,7 @@ import { htmlHmrPlugin } from './plugins/vite-html-hmr.js'
 
 export default defineConfig({
   root: '.',
+  publicDir: 'public',
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -12,7 +13,9 @@ export default defineConfig({
         qr: 'qr-display.html',
         warranty: 'warranty/index.html'
       }
-    }
+    },
+    // 确保静态资源被正确复制
+    copyPublicDir: true
   },
   server: {
     host: '0.0.0.0', // 允许外部访问

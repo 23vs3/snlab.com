@@ -12,8 +12,8 @@ export class Navigation {
     if (!this.menuBtn || !this.navLinks) return;
 
     this.menuBtn.addEventListener('click', () => {
-      const isOpen = getComputedStyle(this.navLinks).display !== 'none';
-      this.navLinks.style.display = isOpen ? 'none' : 'flex';
+      const isOpen = getComputedStyle(this.navLinks as HTMLElement).display !== 'none';
+      (this.navLinks as HTMLElement).style.display = isOpen ? 'none' : 'flex';
     });
   }
 

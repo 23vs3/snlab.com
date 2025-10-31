@@ -1,4 +1,4 @@
-import type { Language, Translations } from './locales.js';
+import type { Language } from './locales.js';
 import { translations } from './locales.js';
 
 class I18n {
