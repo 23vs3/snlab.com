@@ -19,7 +19,11 @@ export async function renderWarrantyContent(): Promise<void> {
     const filePath = `/src/content/warranty-${currentLang === 'zh-CN' ? 'zh-CN' : 'en'}.md`;
     
     // 直接获取文件内容
-    const response = await fetch(filePath);
+    // 开发环境添加时间戳防止缓存，生产环境使用固定路径
+    const cacheBuster = import.meta.env.DEV ? `?t=${Date.now()}` : '';
+    const response = await fetch(filePath + cacheBuster, {
+      cache: 'no-store' // 禁用缓存，确保获取最新内容
+    });
     if (!response.ok) {
       throw new Error(`无法加载保修条款文件: ${filePath} (${response.status})`);
     }
@@ -94,9 +98,27 @@ export function initWarrantyPage(): void {
       renderWarrantyContent();
       
       // 监听语言变化
-      window.addEventListener('languageChanged', () => {
+      const handleLanguageChange = () => {
         renderWarrantyContent();
-      });
+      };
+      window.addEventListener('languageChanged', handleLanguageChange);
+      
+      // 开发环境：监听文件变化（通过 Vite HMR）
+      if (import.meta.env.DEV && import.meta.hot) {
+        // 监听自定义的保修条款更新事件
+        import.meta.hot.on('warranty-content-update', () => {
+          console.log('[Warranty] 检测到保修条款文件更新，重新加载内容...');
+          renderWarrantyContent();
+        });
+        
+        // 也监听 Vite 的通用更新事件（备用）
+        import.meta.hot.on('vite:beforeUpdate', () => {
+          // 延迟一点确保文件已经写入磁盘
+          setTimeout(() => {
+            renderWarrantyContent();
+          }, 100);
+        });
+      }
     } catch (e) {
       setTimeout(init, 50);
     }
