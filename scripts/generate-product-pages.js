@@ -178,10 +178,73 @@ products.forEach(product => {
               console.error('[Product Page] Module check - window.initProductDetail:', typeof window.initProductDetail);
               console.error('[Product Page] Module check - window.renderProductDetail:', typeof window.renderProductDetail);
               
-              // 最后尝试：直接通过 fetch 加载脚本
-              console.warn('[Product Page] Attempting to manually load module...');
-              const modulePath = '/assets/product-' + (document.querySelector('script[type="module"][src*="product"]')?.src.match(/product-([^.]+)/)?.[1] || '') + '.js';
-              console.log('[Product Page] Trying to fetch:', modulePath);
+              // 最后尝试：如果模块未加载，使用硬编码的备用产品数据
+              console.warn('[Product Page] Module failed to load, using fallback product data...');
+              
+              // 硬编码产品数据（仅 A1 产品的基本信息）
+              const fallbackProducts = {
+                'a1': {
+                  name: { 'zh-CN': '便携式音箱 A1', 'en': 'Portable Speaker A1' },
+                  tagline: { 'zh-CN': '聆听强劲且悦耳的音效。灵活便携设计。', 'en': 'Experience powerful and pleasant sound. Flexible portable design.' },
+                  price: { 'zh-CN': '来自 ¥2,980', 'en': 'From ¥2,980' },
+                  image: 'https://picsum.photos/seed/a1-detail/800/600',
+                  description: { 'zh-CN': '轻巧随行，持久续航，全天候陪伴你的灵感。', 'en': 'Lightweight and portable, long-lasting battery, accompanies your inspiration all day long.' }
+                },
+                'h100': {
+                  name: { 'zh-CN': '头戴耳机 H100', 'en': 'Headphones H100' },
+                  tagline: { 'zh-CN': '卓越音质，舒适佩戴。', 'en': 'Excellent sound quality, comfortable to wear.' },
+                  price: { 'zh-CN': '来自 ¥1,980', 'en': 'From ¥1,980' },
+                  image: 'https://picsum.photos/seed/h100/800/600',
+                  description: { 'zh-CN': '沉浸降噪，细腻还原，日常与通勤的惬意之选。', 'en': 'Immersive noise cancellation, delicate sound reproduction, perfect for daily use and commuting.' }
+                },
+                'a5': {
+                  name: { 'zh-CN': '多房间音响 A5', 'en': 'Multi-Room Speaker A5' },
+                  tagline: { 'zh-CN': '艺术与科技的融合，打造沉浸式家居音效。', 'en': 'The fusion of art and technology, creating immersive home audio.' },
+                  price: { 'zh-CN': '来自 ¥5,980', 'en': 'From ¥5,980' },
+                  image: 'https://picsum.photos/seed/a5/800/600',
+                  description: { 'zh-CN': '温润木质与金属质感，设计与听感的平衡之作。', 'en': 'A balance of warm wood and metal texture, design and sound quality.' }
+                }
+              };
+              
+              const fallbackProduct = fallbackProducts[productId];
+              if (fallbackProduct) {
+                console.log('[Product Page] Rendering fallback product data for:', productId);
+                try {
+                  const lang = 'zh-CN'; // 默认中文
+                  
+                  // 更新 DOM 元素
+                  const updates = [
+                    { id: 'product-title', text: fallbackProduct.name[lang] },
+                    { id: 'product-tagline', text: fallbackProduct.tagline[lang] },
+                    { id: 'product-price', text: fallbackProduct.price[lang] },
+                    { id: 'product-name', text: fallbackProduct.name[lang] }
+                  ];
+                  
+                  updates.forEach(function(item) {
+                    const el = document.getElementById(item.id);
+                    if (el) {
+                      el.textContent = item.text;
+                      console.log('[Product Page] Updated', item.id, ':', item.text);
+                    }
+                  });
+                  
+                  // 更新图片
+                  const imageEl = document.getElementById('product-image');
+                  if (imageEl) {
+                    imageEl.src = fallbackProduct.image;
+                    imageEl.alt = fallbackProduct.name[lang];
+                  }
+                  
+                  // 更新页面标题
+                  document.title = fallbackProduct.name[lang] + ' - SINIAN LAB';
+                  
+                  console.log('[Product Page] Fallback render completed successfully');
+                } catch (e) {
+                  console.error('[Product Page] Error in fallback render:', e);
+                }
+              } else {
+                console.error('[Product Page] No fallback data for productId:', productId);
+              }
             }
           }
         }, 200);
