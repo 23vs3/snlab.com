@@ -17,7 +17,7 @@ const warrantyZhCNPath = path.join(distDir, 'src', 'content', 'warranty-zh-CN.md
 const warrantyEnPath = path.join(distDir, 'src', 'content', 'warranty-en.md');
 
 // Markdown 转 HTML 转换器（与 render-warranty.ts 保持一致）
-function convertMarkdownToHTML(markdown: string): string {
+function convertMarkdownToHTML(markdown) {
   let html = markdown;
   
   // 转换标题
