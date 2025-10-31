@@ -26,13 +26,25 @@ export function htmlHmrPlugin() {
     },
     buildStart() {
       // 构建开始时检查所有 HTML 文件
-      const htmlFiles = this.getModuleIds().filter(id => id.endsWith('.html'));
-      htmlFiles.forEach(file => {
-        const content = fs.readFileSync(file, 'utf-8');
-        if (!content.includes('/@vite/client')) {
-          console.log(`⚠️  ${file} 缺少热重载支持`);
+      // getModuleIds 可能在构建时不可用，添加安全检查
+      try {
+        const moduleIds = this.getModuleIds();
+        if (moduleIds && typeof moduleIds.filter === 'function') {
+          const htmlFiles = moduleIds.filter(id => id.endsWith('.html'));
+          htmlFiles.forEach(file => {
+            try {
+              const content = fs.readFileSync(file, 'utf-8');
+              if (!content.includes('/@vite/client')) {
+                console.log(`⚠️  ${file} 缺少热重载支持`);
+              }
+            } catch (e) {
+              // 忽略无法读取的文件
+            }
+          });
         }
-      });
+      } catch (e) {
+        // 在构建环境中，getModuleIds 可能不可用，忽略错误
+      }
     }
   };
 }
