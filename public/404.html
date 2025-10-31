@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>页面重定向 - SINIAN LAB</title>
+  <script>
+    // GitHub Pages 404 处理：重定向客户端路由到正确的页面
+    (function() {
+      const pathname = window.location.pathname;
+      
+      // 处理产品详情页路由：/products/{productId}
+      const productMatch = pathname.match(/^\/products\/([^\/]+)\/?$/);
+      if (productMatch) {
+        const productId = productMatch[1];
+        window.location.href = `/products/index.html?productId=${productId}`;
+        return;
+      }
+      
+      // 处理保修条款页路由：/warranty
+      if (pathname === '/warranty' || pathname === '/warranty/') {
+        window.location.href = '/warranty/index.html';
+        return;
+      }
+      
+      // 其他情况，重定向到首页
+      window.location.href = '/';
+    })();
+  </script>
+</head>
+<body>
+  <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <div style="text-align: center;">
+      <h1>正在跳转...</h1>
+      <p>如果页面没有自动跳转，请 <a href="/">点击这里返回首页</a></p>
+    </div>
+  </div>
+</body>
+</html>
+
