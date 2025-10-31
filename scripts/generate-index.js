@@ -31,43 +31,67 @@ try {
     // 尝试提取 products 数组
     // 构建后的代码格式可能是: const e=[...];export{e as products}
     // 或者: const products=[...];export{products}
+    // Vite 构建后通常会压缩成单行，数组可能是 const e=[...];
     try {
-      // 方法1: 匹配 export{e as products} 或 export{products} 之前的数组
-      // 查找最后一个数组字面量（通常是最大的那个）
-      const arrayMatches = productsDataJs.matchAll(/const\s+\w+\s*=\s*(\[[\s\S]*?\])/g);
-      let largestMatch = null;
-      let largestLength = 0;
+      // 方法1: 查找包含 productId 的数组（这是产品数组的特征）
+      // 匹配从 const 到分号或 export 之间的数组
+      // 使用非贪婪匹配，但需要找到正确的结束位置
+      let arrayMatch = null;
       
-      for (const match of arrayMatches) {
-        if (match[1] && match[1].length > largestLength) {
-          largestLength = match[1].length;
-          largestMatch = match[1];
+      // 尝试匹配 const variableName = [...] 格式
+      // 由于数组可能很大，需要找到正确的结束位置
+      const constMatch = productsDataJs.match(/const\s+\w+\s*=\s*(\[)/);
+      if (constMatch && constMatch.index !== undefined) {
+        // 从数组开始位置开始查找，手动匹配括号
+        let startIndex = constMatch.index + constMatch[0].length - 1; // -1 因为 [ 已经在匹配中
+        let depth = 0;
+        let inString = false;
+        let stringChar = null;
+        let i = startIndex;
+        
+        for (; i < productsDataJs.length; i++) {
+          const char = productsDataJs[i];
+          const prevChar = i > 0 ? productsDataJs[i - 1] : null;
+          const isEscaped = prevChar === '\\';
+          
+          if (!isEscaped) {
+            if ((char === '"' || char === "'") && !inString) {
+              inString = true;
+              stringChar = char;
+            } else if (char === stringChar && inString) {
+              inString = false;
+              stringChar = null;
+            } else if (!inString) {
+              if (char === '[') depth++;
+              if (char === ']') {
+                depth--;
+                if (depth === 0) {
+                  // 找到数组结束
+                  arrayMatch = productsDataJs.substring(startIndex, i + 1);
+                  break;
+                }
+              }
+            }
+          }
         }
       }
       
-      if (largestMatch) {
+      if (arrayMatch) {
         try {
-          // 尝试解析为 JSON（如果格式正确）
-          products = JSON.parse(largestMatch);
+          // 尝试使用 Function 构造函数解析（比 eval 更安全）
+          const func = new Function('return ' + arrayMatch);
+          products = func();
           if (Array.isArray(products) && products.length > 0) {
             console.log(`✅ 从构建文件读取到 ${products.length} 个产品`);
           } else {
             products = [];
           }
-        } catch (jsonError) {
-          // 如果不是标准 JSON，使用 eval（仅构建时，安全）
-          try {
-            products = eval('(' + largestMatch + ')');
-            if (Array.isArray(products) && products.length > 0) {
-              console.log(`✅ 从构建文件读取到 ${products.length} 个产品`);
-            } else {
-              products = [];
-            }
-          } catch (evalError) {
-            console.warn('解析产品数据时出错:', evalError.message);
-            products = [];
-          }
+        } catch (parseError) {
+          console.warn('解析产品数据时出错:', parseError.message);
+          products = [];
         }
+      } else {
+        console.warn('⚠️  无法找到产品数组');
       }
     } catch (e) {
       console.warn('无法从构建文件提取产品数据:', e.message);
