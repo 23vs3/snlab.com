@@ -63,14 +63,121 @@ products.forEach(product => {
   // 创建 index.html 文件
   const productIndexPath = path.join(productDir, 'index.html');
   
-  // 修改模板，添加默认的 productId 到 URL 查询参数
-  // 这样当访问 /products/{productId}/ 时，JavaScript 可以正确识别
-  // 查找并替换构建后的产品脚本标签（可能在 head 或 body 中）
+  // 从构建后的 products-data JS 文件中读取产品数据
+  const productsDataFiles = fs.readdirSync(path.join(distDir, 'assets')).filter(f => f.startsWith('products-data-') && f.endsWith('.js'));
+  
+  let productDataJson = null;
+  if (productsDataFiles.length > 0) {
+    const productsDataFile = path.join(distDir, 'assets', productsDataFiles[0]);
+    const productsDataJs = fs.readFileSync(productsDataFile, 'utf-8');
+    // 尝试提取 products 数组
+    try {
+      // 使用正则提取数组内容
+      const arrayMatch = productsDataJs.match(/export\s+const\s+products\s*=\s*(\[[\s\S]*?\]);/);
+      if (arrayMatch) {
+        // 安全地评估（仅在构建时执行）
+        const moduleCode = productsDataJs.replace(/export\s+const\s+products/, 'const products');
+        const func = new Function('return ' + moduleCode.split('=')[1].split(';')[0] + ';');
+        const allProducts = func();
+        productDataJson = allProducts.find(p => p.productId === product.productId);
+      }
+    } catch (e) {
+      console.warn(`无法从构建文件提取产品数据:`, e);
+    }
+  }
+  
+  // 如果无法从构建文件获取，使用硬编码的基本数据
+  if (!productDataJson) {
+    const fallbackProducts = {
+      'a1': {
+        productId: 'a1',
+        name: { 'zh-CN': '便携式音箱 A1', 'en': 'Portable Speaker A1' },
+        tagline: { 'zh-CN': '聆听强劲且悦耳的音效。灵活便携设计。', 'en': 'Experience powerful and pleasant sound. Flexible portable design.' },
+        price: { 'zh-CN': '来自 ¥2,980', 'en': 'From ¥2,980' },
+        image: 'https://picsum.photos/seed/a1-detail/800/600'
+      },
+      'h100': {
+        productId: 'h100',
+        name: { 'zh-CN': '头戴耳机 H100', 'en': 'Headphones H100' },
+        tagline: { 'zh-CN': '卓越音质，舒适佩戴。', 'en': 'Excellent sound quality, comfortable to wear.' },
+        price: { 'zh-CN': '来自 ¥1,980', 'en': 'From ¥1,980' },
+        image: 'https://picsum.photos/seed/h100/800/600'
+      },
+      'a5': {
+        productId: 'a5',
+        name: { 'zh-CN': '多房间音响 A5', 'en': 'Multi-Room Speaker A5' },
+        tagline: { 'zh-CN': '艺术与科技的融合，打造沉浸式家居音效。', 'en': 'The fusion of art and technology, creating immersive home audio.' },
+        price: { 'zh-CN': '来自 ¥5,980', 'en': 'From ¥5,980' },
+        image: 'https://picsum.photos/seed/a5/800/600'
+      }
+    };
+    productDataJson = fallbackProducts[product.productId] || fallbackProducts['a1'];
+  }
+  
+  // 修改模板，直接替换占位符文本为实际产品数据（服务端渲染）
   let modifiedTemplate = template;
   
-  // 添加一个立即执行的脚本，确保产品详情页初始化代码能够执行
-  // 由于 ES 模块可能有加载时机问题，添加内联脚本作为备用
+  // 获取默认语言
+  const defaultLang = 'zh-CN';
+  
+  // 直接替换 HTML 中的占位符
+  modifiedTemplate = modifiedTemplate.replace(
+    /<span id="product-name">加载中\.\.\.<\/span>/,
+    `<span id="product-name">${productDataJson.name[defaultLang]}</span>`
+  );
+  modifiedTemplate = modifiedTemplate.replace(
+    /<h1 id="product-title">加载中\.\.\.<\/h1>/,
+    `<h1 id="product-title">${productDataJson.name[defaultLang]}</h1>`
+  );
+  modifiedTemplate = modifiedTemplate.replace(
+    /<p class="product-tagline" id="product-tagline">加载中\.\.\.<\/p>/,
+    `<p class="product-tagline" id="product-tagline">${productDataJson.tagline[defaultLang]}</p>`
+  );
+  modifiedTemplate = modifiedTemplate.replace(
+    /<div class="product-price" id="product-price">加载中\.\.\.<\/div>/,
+    `<div class="product-price" id="product-price">${productDataJson.price[defaultLang]}</div>`
+  );
+  modifiedTemplate = modifiedTemplate.replace(
+    /<img src="" alt="产品图" id="product-image" \/>/,
+    `<img src="${productDataJson.image}" alt="${productDataJson.name[defaultLang]}" id="product-image" />`
+  );
+  modifiedTemplate = modifiedTemplate.replace(
+    /<title>.*?<\/title>/,
+    `<title>${productDataJson.name[defaultLang]} - SINIAN LAB</title>`
+  );
+  
+  // 添加一个简单的内联脚本，用于语言切换和完整数据加载（可选）
   const inlineScript = `
+  <script>
+    // 内联产品数据（用于语言切换和完整功能）
+    const PRODUCT_DATA = ${JSON.stringify(productDataJson)};
+    
+    // 如果 ES 模块加载成功，使用完整功能；否则仅使用内联数据
+    function updateLanguage(lang) {
+      if (!PRODUCT_DATA) return;
+      const elements = [
+        { id: 'product-title', key: 'name' },
+        { id: 'product-tagline', key: 'tagline' },
+        { id: 'product-price', key: 'price' },
+        { id: 'product-name', key: 'name' }
+      ];
+      elements.forEach(function(item) {
+        const el = document.getElementById(item.id);
+        if (el && PRODUCT_DATA[item.key] && PRODUCT_DATA[item.key][lang]) {
+          el.textContent = PRODUCT_DATA[item.key][lang];
+        }
+      });
+      if (PRODUCT_DATA.name && PRODUCT_DATA.name[lang]) {
+        document.title = PRODUCT_DATA.name[lang] + ' - SINIAN LAB';
+      }
+    }
+    
+    // 监听语言变化事件（如果 ES 模块加载成功，会被触发）
+    window.addEventListener('languageChanged', function(e) {
+      const lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');
+      updateLanguage(lang);
+    });
+  </script>`;
   <script>
     // 备用初始化脚本：确保产品详情页能够加载
     console.log('[Product Page] Script loaded for product: ${product.productId}');
