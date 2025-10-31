@@ -68,10 +68,35 @@ products.forEach(product => {
   // 查找并替换构建后的产品脚本标签（可能在 head 或 body 中）
   let modifiedTemplate = template;
   
-  // 注意：不需要添加 URL 处理脚本
-  // render-product-detail.ts 中的 getProductIdFromUrl() 已经可以从路径中读取 productId
-  // 它会优先从路径匹配 /products/{productId}/，所以无需修改 URL
-  // 直接使用模板即可
+  // 添加一个立即执行的脚本，确保产品详情页初始化代码能够执行
+  // 由于 ES 模块可能有加载时机问题，添加内联脚本作为备用
+  const inlineScript = `
+  <script>
+    // 备用初始化脚本：确保产品详情页能够加载
+    console.log('[Product Page] Script loaded for product: ${product.productId}');
+    console.log('[Product Page] Current pathname:', window.location.pathname);
+    
+    // 监听模块加载完成
+    window.addEventListener('load', function() {
+      console.log('[Product Page] Window loaded, checking if product detail initialized...');
+      setTimeout(function() {
+        // 检查是否已经有内容渲染
+        const productTitle = document.getElementById('product-title');
+        if (productTitle && productTitle.textContent === '加载中...') {
+          console.warn('[Product Page] Product detail not initialized after load, pathname:', window.location.pathname);
+          console.warn('[Product Page] Available window.i18n:', typeof window.i18n !== 'undefined');
+        }
+      }, 1000);
+    });
+  </script>`;
+  
+  // 在 </body> 之前插入脚本
+  if (modifiedTemplate.includes('</body>')) {
+    modifiedTemplate = modifiedTemplate.replace('</body>', `${inlineScript}</body>`);
+  } else {
+    // 如果没有 </body>，在最后添加
+    modifiedTemplate += inlineScript;
+  }
   
   fs.writeFileSync(productIndexPath, modifiedTemplate);
   console.log(`✅ 生成产品页面: /products/${product.productId}/index.html`);
