@@ -353,18 +353,8 @@
       margin-top: var(--space-6);
     }
     .footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
-    .footer-col h4 {
-      margin: 0 0 var(--space-3);
-      font-size: 16px;
-    }
-    .footer-col a {
-      display: block;
-      opacity: 0.8;
-      margin: 8px 0;
-    }
-    .footer-col a:hover {
-      opacity: 1;
-    }
+    .footer-col h4 { margin: 0 0 var(--space-3); font-size: 16px; }
+    .footer-col a { display: block; opacity: 0.8; margin: 8px 0; }
     .copyright {
       margin-top: var(--space-5);
       color: var(--muted);
@@ -562,6 +552,25 @@
     }
   }
   </style>
+</head>
+<body>
+  <div id="top"></div>
+  <!-- 导航栏将通过 load-header.js 动态加载 -->
+  <script src="/src/components/load-header.js"></script>
+
+  <main>
+    <!-- ... warranty content ... -->
+  </main>
+
+  <footer>
+    <!-- ... footer content ... -->
+  </footer>
+  
+  <!-- 微信公众号二维码弹窗 -->
+  <div id="wechat-qrcode-popup">
+    <img src="/images/wx_qrcode.png" alt="微信公众号二维码">
+    <div class="desc" data-i18n="common.scanToFollow">扫码关注</div>
+  </div>
   <script>
     (function(){
       const link = document.querySelector('.wechat-qrcode-link');
