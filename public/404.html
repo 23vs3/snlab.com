@@ -21,26 +21,18 @@
           return;
         }
         
-        // 尝试直接访问 /products/{productId}/index.html
-        // 如果文件存在，服务器会自动重定向到 /products/{productId}/
-        // 如果文件不存在，则使用查询参数方式
-        const tryPath = `/products/${productId}/index.html`;
-        
-        // 先尝试带尾部斜杠的路径（这是实际文件路径）
-        fetch(tryPath, { method: 'HEAD', cache: 'no-cache' })
-          .then(response => {
-            if (response.ok || response.status === 0) {
-              // 文件存在，重定向到目录路径
-              window.location.href = `/products/${productId}/`;
-            } else {
-              // 文件不存在，使用查询参数方式
-              window.location.href = `/products/index.html?productId=${productId}`;
-            }
-          })
-          .catch(() => {
-            // 网络错误，直接尝试目录路径，如果失败再回退
-            window.location.href = `/products/${productId}/`;
-          });
+        // 直接重定向到目录路径（静态服务器会自动查找 index.html）
+        // 如果文件不存在，则重定向到查询参数方式作为后备
+        if (!pathname.endsWith('/')) {
+          // 如果 URL 不带尾部斜杠，先尝试带斜杠的路径
+          window.location.href = `/products/${productId}/`;
+        } else {
+          // 如果已经在带斜杠的路径上但文件不存在，使用查询参数方式
+          // 延迟一点执行，避免立即跳转
+          setTimeout(() => {
+            window.location.href = `/products/index.html?productId=${productId}`;
+          }, 100);
+        }
         return;
       }
       
