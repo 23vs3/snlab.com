@@ -76,6 +76,80 @@ products.forEach(product => {
     console.log('[Product Page] Script loaded for product: ${product.productId}');
     console.log('[Product Page] Current pathname:', window.location.pathname);
     
+    // 尝试从 URL 路径提取 productId
+    function getProductIdFromPath() {
+      const pathname = window.location.pathname;
+      const match = pathname.match(/\\/products\\/([^\\/]+)\\/?$/);
+      if (match && match[1] && match[1] !== 'index.html' && !match[1].includes('.')) {
+        return match[1];
+      }
+      return '${product.productId}'; // 回退到已知的 productId
+    }
+    
+    // 强制初始化函数（备用方案）
+    function forceInitProductDetail() {
+      const productId = getProductIdFromPath();
+      console.log('[Product Page] Force init called for productId:', productId);
+      
+      // 检查是否可以通过 window 访问产品数据和渲染函数
+      if (typeof window !== 'undefined') {
+        // 等待一段时间让模块加载
+        const checkInterval = setInterval(function() {
+          // 检查产品是否已渲染
+          const productTitle = document.getElementById('product-title');
+          if (productTitle && productTitle.textContent !== '加载中...') {
+            console.log('[Product Page] Product detail already rendered');
+            clearInterval(checkInterval);
+            return;
+          }
+          
+          // 尝试通过全局变量访问初始化函数
+          if (typeof window.initProductDetail === 'function') {
+            console.log('[Product Page] Calling window.initProductDetail()');
+            try {
+              window.initProductDetail();
+              clearInterval(checkInterval);
+            } catch (e) {
+              console.error('[Product Page] Error calling initProductDetail:', e);
+            }
+          }
+          
+          // 检查模块是否已加载（通过检查 window.i18n 或产品数据）
+          if (typeof window.i18n !== 'undefined' && typeof window.products !== 'undefined') {
+            console.log('[Product Page] Module loaded, attempting direct render...');
+            // 如果模块加载了但初始化函数不可用，尝试直接调用
+            if (window.products && Array.isArray(window.products)) {
+              const product = window.products.find(function(p) {
+                return p.productId === productId;
+              });
+              if (product && typeof window.renderProductDetail === 'function') {
+                console.log('[Product Page] Found product, calling renderProductDetail');
+                try {
+                  window.renderProductDetail(productId);
+                  clearInterval(checkInterval);
+                } catch (e) {
+                  console.error('[Product Page] Error calling renderProductDetail:', e);
+                }
+              }
+            }
+          }
+        }, 200);
+        
+        // 最多尝试 30 次（6 秒）
+        setTimeout(function() {
+          clearInterval(checkInterval);
+          const productTitle = document.getElementById('product-title');
+          if (productTitle && productTitle.textContent === '加载中...') {
+            console.error('[Product Page] Failed to initialize product detail after 6 seconds');
+            console.error('[Product Page] Module check - window.i18n:', typeof window.i18n);
+            console.error('[Product Page] Module check - window.products:', typeof window.products);
+            console.error('[Product Page] Module check - window.initProductDetail:', typeof window.initProductDetail);
+            console.error('[Product Page] Module check - window.renderProductDetail:', typeof window.renderProductDetail);
+          }
+        }, 6000);
+      }
+    }
+    
     // 监听模块加载完成
     window.addEventListener('load', function() {
       console.log('[Product Page] Window loaded, checking if product detail initialized...');
@@ -85,9 +159,22 @@ products.forEach(product => {
         if (productTitle && productTitle.textContent === '加载中...') {
           console.warn('[Product Page] Product detail not initialized after load, pathname:', window.location.pathname);
           console.warn('[Product Page] Available window.i18n:', typeof window.i18n !== 'undefined');
+          // 尝试强制初始化
+          forceInitProductDetail();
+        } else {
+          console.log('[Product Page] Product detail already initialized');
         }
-      }, 1000);
+      }, 1500);
     });
+    
+    // 也尝试立即检查（不等待 load 事件）
+    setTimeout(function() {
+      const productTitle = document.getElementById('product-title');
+      if (productTitle && productTitle.textContent === '加载中...') {
+        console.log('[Product Page] Product still loading after 500ms, attempting force init...');
+        forceInitProductDetail();
+      }
+    }, 500);
   </script>`;
   
   // 在 </body> 之前插入脚本

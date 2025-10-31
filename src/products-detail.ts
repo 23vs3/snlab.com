@@ -20,6 +20,32 @@ if (typeof window !== 'undefined') {
   } else {
     console.log('[products-detail.ts] window.i18n already exists');
   }
+  
+  // 将初始化函数暴露到 window，供备用脚本调用
+  if (!(window as any).initProductDetail) {
+    (window as any).initProductDetail = initProductDetail;
+    console.log('[products-detail.ts] initProductDetail exposed to window');
+  }
+  
+  // 将 renderProductDetail 也暴露到 window（如果可能）
+  import('./components/render-product-detail.js').then(module => {
+    if (module && module.renderProductDetail) {
+      (window as any).renderProductDetail = module.renderProductDetail;
+      console.log('[products-detail.ts] renderProductDetail exposed to window');
+    }
+    
+    // 也将产品数据暴露到 window
+    import('./config/products-data.js').then(dataModule => {
+      if (dataModule && dataModule.products) {
+        (window as any).products = dataModule.products;
+        console.log('[products-detail.ts] products data exposed to window, count:', dataModule.products.length);
+      }
+    }).catch(e => {
+      console.warn('[products-detail.ts] Failed to expose products data:', e);
+    });
+  }).catch(e => {
+    console.warn('[products-detail.ts] Failed to expose renderProductDetail:', e);
+  });
 }
 
 // 等待 i18n 和 DOM 都准备好后再初始化产品详情页
