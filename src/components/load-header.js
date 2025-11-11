@@ -1,3 +1,8 @@
+// 立即执行的日志，确保脚本文件被加载
+console.log('[load-header] ===== Script file loaded and executing =====');
+console.log('[load-header] Current URL:', window.location.href);
+console.log('[load-header] Document readyState:', document.readyState);
+
 /**
  * 动态加载共享导航栏组件
  * 参考 Bang & Olufsen 的实现方式
