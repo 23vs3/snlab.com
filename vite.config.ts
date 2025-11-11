@@ -3,6 +3,7 @@ import { htmlHmrPlugin } from './plugins/vite-html-hmr.js'
 import { viteCopyContentPlugin } from './plugins/vite-copy-content.js'
 import { viteWarrantyHmrPlugin } from './plugins/vite-warranty-hmr.js'
 import { viteRemoveClientPlugin } from './plugins/vite-remove-client.js'
+import { vitePrioritySrcPlugin } from './plugins/vite-priority-src-plugin.js'
 
 export default defineConfig({
   root: '.',
@@ -33,6 +34,7 @@ export default defineConfig({
     viteCopyContentPlugin(), // 复制 src/content 到 dist/src/content
     viteWarrantyHmrPlugin(), // 监听保修条款文件变化并触发更新
     viteRemoveClientPlugin(), // 移除生产环境的客户端脚本
+    vitePrioritySrcPlugin(), // 确保 src/ 目录中的文件优先于 public/ 目录中的文件
     // 自定义插件：支持 /products/{productId} 路径重写（不带尾部斜杠）
     {
       name: 'product-routes',
