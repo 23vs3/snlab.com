@@ -3,11 +3,13 @@
  * 参考 Bang & Olufsen 的实现方式
  */
 async function loadHeader() {
+  console.log('[load-header] loadHeader() called, pathname:', window.location.pathname, 'search:', window.location.search);
   try {
     // 获取当前页面路径，判断是否为首页
     // 首页路径：/, /index.html
     const pathname = window.location.pathname;
     const isIndexPage = pathname === '/' || pathname === '/index.html';
+    console.log('[load-header] isIndexPage:', isIndexPage);
     
     // 加载 header HTML
     const response = await fetch('/src/components/header.html');
@@ -502,6 +504,28 @@ async function loadHeader() {
     // 开始检查 i18n 初始化状态
     checkAndSyncI18nLanguage();
     
+    // 额外：当 i18n 初始化完成后，确保 header 语言正确
+    // 监听 window.i18n 的创建（通过 Object.defineProperty 或直接赋值）
+    const originalDefineProperty = Object.defineProperty;
+    Object.defineProperty = function(obj, prop, descriptor) {
+      const result = originalDefineProperty.apply(this, arguments);
+      if (obj === window && prop === 'i18n' && window.i18n) {
+        console.log('[load-header] window.i18n defined, syncing language');
+        setTimeout(() => {
+          applyCurrentLanguage();
+        }, 100);
+      }
+      return result;
+    };
+    
+    // 如果 window.i18n 已经存在，立即同步
+    if (window.i18n && typeof window.i18n.getLang === 'function') {
+      console.log('[load-header] window.i18n already exists, syncing language');
+      setTimeout(() => {
+        applyCurrentLanguage();
+      }, 100);
+    }
+    
     // 更新导航链接的语言参数（在语言变化时调用）
     function updateNavLinksLanguage() {
       const currentPathname = window.location.pathname;
@@ -570,7 +594,7 @@ async function loadHeader() {
     }, 2000); // 再次重试，确保在非常慢的网络下也能工作
     
   } catch (error) {
-    console.error('Error loading header:', error);
+    console.error('[load-header] Error loading header:', error);
     // 降级方案：显示一个简单的 header
     const fallbackHeader = document.createElement('header');
     fallbackHeader.innerHTML = `
@@ -694,12 +718,16 @@ function initMobileMenu() {
 // 页面加载完成后自动加载 header
 // 确保在 DOM 准备好后执行
 (function() {
+  console.log('[load-header] Script loaded, readyState:', document.readyState);
   if (document.readyState === 'loading') {
+    console.log('[load-header] Waiting for DOMContentLoaded');
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('[load-header] DOMContentLoaded fired, calling loadHeader');
       setTimeout(loadHeader, 0);
     });
   } else {
     // DOM 已经准备好，立即执行
+    console.log('[load-header] DOM already ready, calling loadHeader');
     setTimeout(loadHeader, 0);
   }
 })();
