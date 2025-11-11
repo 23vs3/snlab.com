@@ -9,7 +9,19 @@ export function renderProductsList(containerSelector: string = '#products-grid')
     return;
   }
 
-  // 清空现有内容
+  // 检查容器是否已经有内容（可能是构建时内联的产品列表）
+  const existingCards = container.querySelectorAll('.card');
+  if (existingCards.length > 0) {
+    // 如果已经有产品卡片，说明是生产环境的内联内容
+    // 只更新语言相关的部分，不重新渲染整个列表
+    console.log('[render-products] 检测到已内联的产品列表，跳过重新渲染');
+    
+    // 更新现有卡片的语言（通过内联脚本的 updateProductsLanguage 函数处理）
+    // 这里只需要确保 i18n 已初始化，语言更新由内联脚本处理
+    return;
+  }
+
+  // 清空现有内容（开发环境或没有内联内容时）
   container.innerHTML = '';
 
   const currentLang = i18n.getLang() as Language;

@@ -24,8 +24,18 @@ class App {
 
   private initializeProducts(): void {
     // 只在 index.html 页面渲染产品列表
-    if (document.querySelector('#products-grid')) {
-      renderProductsList();
+    const productsGrid = document.querySelector('#products-grid');
+    if (productsGrid) {
+      // 检查是否已经有内联的产品列表（生产环境）
+      const hasInlineProducts = productsGrid.querySelectorAll('.card').length > 0;
+      
+      if (!hasInlineProducts) {
+        // 开发环境或没有内联内容时，通过 JavaScript 渲染
+        renderProductsList();
+      } else {
+        // 生产环境已有内联内容，不重新渲染，避免重复
+        console.log('[main] 检测到已内联的产品列表，跳过 JavaScript 渲染');
+      }
     }
   }
 
