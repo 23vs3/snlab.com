@@ -21,6 +21,9 @@ export function renderProductsList(containerSelector: string = '#products-grid')
     // 获取国际化文本
     const learnMoreText = i18n.t('sections.products.learnMore');
     
+    // 构建产品链接，包含当前语言参数
+    const productUrl = `/products/${product.productId}?lang=${currentLang}`;
+    
     article.innerHTML = `
       <div class="card-media">
         <img src="${product.image}" alt="${product.name[currentLang]}" />
@@ -28,7 +31,7 @@ export function renderProductsList(containerSelector: string = '#products-grid')
       <div class="card-body">
         <h3>${product.name[currentLang]}</h3>
         <p>${product.description[currentLang]}</p>
-        <a class="btn" href="/products/${product.productId}" data-i18n="sections.products.learnMore">
+        <a class="btn" href="${productUrl}" data-i18n="sections.products.learnMore">
           ${learnMoreText}
         </a>
       </div>

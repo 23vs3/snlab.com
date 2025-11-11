@@ -56,7 +56,7 @@ class I18n {
     return value || key;
   }
 
-  private updatePageContent(): void {
+  updatePageContent(): void {
     // 更新所有带有 data-i18n 属性的元素
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');

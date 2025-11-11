@@ -123,6 +123,9 @@ try {
     const image = product.image || '';
     const productId = product.productId || '';
     
+    // 产品链接包含默认语言参数，确保跳转时语言状态正确传递
+    const productUrl = `/products/${productId}?lang=${defaultLang}`;
+    
     return `
         <article class="card">
           <div class="card-media">
@@ -131,7 +134,7 @@ try {
           <div class="card-body">
             <h3>${name}</h3>
             <p>${description}</p>
-            <a class="btn" href="/products/${productId}" data-i18n="sections.products.learnMore">了解更多</a>
+            <a class="btn" href="${productUrl}" data-i18n="sections.products.learnMore" data-product-link="${productId}">了解更多</a>
           </div>
         </article>
       `;
@@ -184,6 +187,12 @@ try {
         const img = card.querySelector('img');
         if (img && product.name && product.name[lang]) {
           img.alt = product.name[lang];
+        }
+        
+        // 更新产品链接，包含当前语言参数
+        const productLink = card.querySelector('a.btn[data-product-link]');
+        if (productLink && product.productId) {
+          productLink.href = '/products/' + product.productId + '?lang=' + lang;
         }
       });
     }

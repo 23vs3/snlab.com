@@ -259,11 +259,39 @@ async function loadHeader() {
       }
     }
     
+    // 立即应用当前语言到 header（如果 i18n 已初始化）
+    function applyCurrentLanguage() {
+      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.updatePageContent === 'function') {
+        try {
+          // 立即更新 header 中的文本
+          window.i18n.updatePageContent();
+          console.log('Language applied to header after load');
+        } catch (e) {
+          console.warn('Error applying language to header:', e);
+        }
+      } else {
+        // 如果 i18n 还未初始化，稍后重试
+        setTimeout(applyCurrentLanguage, 100);
+      }
+    }
+    
+    // 立即尝试应用语言
+    applyCurrentLanguage();
+    
     // 立即尝试一次，然后延迟尝试
     ensureLangToggleInit();
-    setTimeout(() => ensureLangToggleInit(), 150);
-    setTimeout(() => ensureLangToggleInit(), 500); // 额外的重试，确保在慢速加载时也能工作
-    setTimeout(() => ensureLangToggleInit(), 1000); // 再次重试，确保在非常慢的网络下也能工作
+    setTimeout(() => {
+      ensureLangToggleInit();
+      applyCurrentLanguage(); // 再次应用语言
+    }, 150);
+    setTimeout(() => {
+      ensureLangToggleInit();
+      applyCurrentLanguage(); // 再次应用语言
+    }, 500); // 额外的重试，确保在慢速加载时也能工作
+    setTimeout(() => {
+      ensureLangToggleInit();
+      applyCurrentLanguage(); // 再次应用语言
+    }, 1000); // 再次重试，确保在非常慢的网络下也能工作
     
   } catch (error) {
     console.error('Error loading header:', error);
