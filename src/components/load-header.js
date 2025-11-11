@@ -75,18 +75,50 @@ async function loadHeader() {
     // 初始化国际化（header 加载后，延迟一点确保按钮已渲染）
     // 使用多重检查确保在模块加载后也能初始化
     let retryCount = 0;
-    const maxRetries = 30; // 最多重试 30 次（约 3 秒）
+    const maxRetries = 50; // 增加重试次数（约 5 秒），确保在慢速网络下也能工作
     
     function ensureLangToggleInit() {
       retryCount++;
       
+      // 优先尝试使用 setupLangToggleAfterHeaderLoad（如果可用）
       if (typeof window !== 'undefined' && window.setupLangToggleAfterHeaderLoad) {
         try {
           window.setupLangToggleAfterHeaderLoad();
-          // 成功初始化后不再重试
-          return;
+          console.log('Language toggle initialized via setupLangToggleAfterHeaderLoad');
+          return true; // 成功初始化
         } catch (e) {
           console.warn('Error calling setupLangToggleAfterHeaderLoad:', e);
+        }
+      }
+      
+      // 备用方案：如果 initI18n 可用，直接调用它
+      if (typeof window !== 'undefined' && window.initI18n && typeof window.initI18n === 'function') {
+        try {
+          window.initI18n();
+          console.log('Language toggle initialized via initI18n');
+          return true; // 成功初始化
+        } catch (e) {
+          console.warn('Error calling initI18n:', e);
+        }
+      }
+      
+      // 如果 i18n 实例已存在但函数不可用，尝试手动初始化
+      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.setLang === 'function') {
+        const langToggleDesktop = document.getElementById('lang-toggle');
+        const langToggleMobile = document.getElementById('lang-toggle-mobile');
+        const langDropdownDesktop = document.getElementById('lang-dropdown');
+        const langDropdownMobile = document.getElementById('lang-dropdown-mobile');
+        
+        if ((langToggleDesktop && langDropdownDesktop) || (langToggleMobile && langDropdownMobile)) {
+          console.log('Attempting manual language toggle initialization...');
+          try {
+            // 手动绑定事件处理器
+            setupLangToggleManually();
+            console.log('Language toggle initialized manually');
+            return true; // 成功初始化
+          } catch (e) {
+            console.error('Error in manual initialization:', e);
+          }
         }
       }
       
@@ -94,27 +126,136 @@ async function loadHeader() {
       if (retryCount < maxRetries) {
         setTimeout(ensureLangToggleInit, 100);
       } else {
-        console.warn('setupLangToggleAfterHeaderLoad not available after', maxRetries, 'retries');
-        // 最后尝试直接调用 setupLangToggle（如果可用）
-        if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.setLang === 'function') {
-          console.log('Attempting alternative initialization...');
-          // 尝试手动初始化语言切换按钮
-          setTimeout(() => {
-            const langToggleDesktop = document.getElementById('lang-toggle');
-            const langToggleMobile = document.getElementById('lang-toggle-mobile');
-            if (langToggleDesktop || langToggleMobile) {
-              console.log('Language toggle buttons found, but setupLangToggleAfterHeaderLoad not available');
-              // 如果 initI18n 模块已加载，直接调用
-              if (window.initI18n && typeof window.initI18n === 'function') {
-                try {
-                  window.initI18n();
-                } catch (e) {
-                  console.error('Error calling initI18n:', e);
-                }
-              }
-            }
-          }, 200);
+        console.warn('Language toggle initialization failed after', maxRetries, 'retries');
+        // 最后尝试手动初始化
+        const langToggleDesktop = document.getElementById('lang-toggle');
+        const langToggleMobile = document.getElementById('lang-toggle-mobile');
+        if (langToggleDesktop || langToggleMobile) {
+          console.log('Final attempt: manual initialization');
+          setupLangToggleManually();
         }
+      }
+      
+      return false;
+    }
+    
+    // 手动初始化语言切换按钮的备用函数
+    function setupLangToggleManually() {
+      const langToggleDesktop = document.getElementById('lang-toggle');
+      const langDropdownDesktop = document.getElementById('lang-dropdown');
+      const langToggleMobile = document.getElementById('lang-toggle-mobile');
+      const langDropdownMobile = document.getElementById('lang-dropdown-mobile');
+      
+      if (!window.i18n || typeof window.i18n.setLang !== 'function') {
+        console.warn('i18n not available for manual setup');
+        return;
+      }
+      
+      // 设置桌面端
+      if (langToggleDesktop && langDropdownDesktop && !langToggleDesktop.dataset.langToggleBound) {
+        langToggleDesktop.dataset.langToggleBound = 'true';
+        langToggleDesktop.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const isOpen = langDropdownDesktop.classList.contains('show');
+          if (isOpen) {
+            langDropdownDesktop.classList.remove('show');
+            langToggleDesktop.setAttribute('aria-expanded', 'false');
+          } else {
+            // 关闭其他下拉菜单
+            if (langDropdownMobile) langDropdownMobile.classList.remove('show');
+            if (langToggleMobile) langToggleMobile.setAttribute('aria-expanded', 'false');
+            // 打开当前下拉菜单
+            langDropdownDesktop.classList.add('show');
+            langToggleDesktop.setAttribute('aria-expanded', 'true');
+          }
+        });
+        
+        // 绑定语言选项
+        const optionsDesktop = langDropdownDesktop.querySelectorAll('.lang-option');
+        optionsDesktop.forEach(option => {
+          if (!option.dataset.langOptionBound) {
+            option.dataset.langOptionBound = 'true';
+            option.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              const lang = option.getAttribute('data-lang');
+              if (lang && (lang === 'zh-CN' || lang === 'en')) {
+                window.i18n.setLang(lang);
+                langDropdownDesktop.classList.remove('show');
+                langToggleDesktop.setAttribute('aria-expanded', 'false');
+              }
+            });
+          }
+        });
+      }
+      
+      // 设置移动端
+      if (langToggleMobile && langDropdownMobile && !langToggleMobile.dataset.langToggleBound) {
+        langToggleMobile.dataset.langToggleBound = 'true';
+        langToggleMobile.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const isOpen = langDropdownMobile.classList.contains('show');
+          if (isOpen) {
+            langDropdownMobile.classList.remove('show');
+            langToggleMobile.setAttribute('aria-expanded', 'false');
+          } else {
+            // 关闭其他下拉菜单
+            if (langDropdownDesktop) langDropdownDesktop.classList.remove('show');
+            if (langToggleDesktop) langToggleDesktop.setAttribute('aria-expanded', 'false');
+            // 打开当前下拉菜单
+            langDropdownMobile.classList.add('show');
+            langToggleMobile.setAttribute('aria-expanded', 'true');
+          }
+        });
+        
+        // 绑定语言选项
+        const optionsMobile = langDropdownMobile.querySelectorAll('.lang-option');
+        optionsMobile.forEach(option => {
+          if (!option.dataset.langOptionBound) {
+            option.dataset.langOptionBound = 'true';
+            option.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              const lang = option.getAttribute('data-lang');
+              if (lang && (lang === 'zh-CN' || lang === 'en')) {
+                window.i18n.setLang(lang);
+                langDropdownMobile.classList.remove('show');
+                langToggleMobile.setAttribute('aria-expanded', 'false');
+              }
+            });
+          }
+        });
+      }
+      
+      // 绑定全局点击处理器（点击外部关闭下拉菜单）
+      if (!window.langToggleGlobalClickHandler) {
+        window.langToggleGlobalClickHandler = function(e) {
+          const target = e.target;
+          const langToggleDesktop = document.getElementById('lang-toggle');
+          const langDropdownDesktop = document.getElementById('lang-dropdown');
+          const langToggleMobile = document.getElementById('lang-toggle-mobile');
+          const langDropdownMobile = document.getElementById('lang-dropdown-mobile');
+          
+          const isInside = 
+            (langToggleDesktop && langToggleDesktop.contains(target)) ||
+            (langDropdownDesktop && langDropdownDesktop.contains(target)) ||
+            (langToggleMobile && langToggleMobile.contains(target)) ||
+            (langDropdownMobile && langDropdownMobile.contains(target));
+          
+          if (!isInside) {
+            if (langDropdownDesktop && langToggleDesktop) {
+              langDropdownDesktop.classList.remove('show');
+              langToggleDesktop.setAttribute('aria-expanded', 'false');
+            }
+            if (langDropdownMobile && langToggleMobile) {
+              langDropdownMobile.classList.remove('show');
+              langToggleMobile.setAttribute('aria-expanded', 'false');
+            }
+          }
+        };
+        document.addEventListener('click', window.langToggleGlobalClickHandler, true);
       }
     }
     
@@ -122,6 +263,7 @@ async function loadHeader() {
     ensureLangToggleInit();
     setTimeout(() => ensureLangToggleInit(), 150);
     setTimeout(() => ensureLangToggleInit(), 500); // 额外的重试，确保在慢速加载时也能工作
+    setTimeout(() => ensureLangToggleInit(), 1000); // 再次重试，确保在非常慢的网络下也能工作
     
   } catch (error) {
     console.error('Error loading header:', error);

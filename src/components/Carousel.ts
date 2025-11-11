@@ -68,7 +68,7 @@ export class Carousel {
     // 清空现有的 slides
     this.track.innerHTML = '';
 
-    slides.forEach((item) => {
+    slides.forEach((item, index) => {
       const slideDiv = document.createElement('div');
       slideDiv.className = 'slide';
 
@@ -76,6 +76,33 @@ export class Carousel {
         const img = document.createElement('img');
         img.src = item.src;
         img.alt = item.alt || '';
+        
+        // 添加图片加载错误处理
+        img.addEventListener('error', (e) => {
+          console.error(`轮播图图片加载失败 [${index}]:`, item.src, e);
+          // 可选：显示占位符或错误提示
+          img.style.backgroundColor = '#000';
+          img.style.display = 'flex';
+          img.style.alignItems = 'center';
+          img.style.justifyContent = 'center';
+          img.style.color = '#fff';
+          img.style.fontSize = '14px';
+          // 创建一个错误提示元素
+          const errorText = document.createElement('span');
+          errorText.textContent = '图片加载失败';
+          errorText.style.position = 'absolute';
+          errorText.style.color = '#fff';
+          errorText.style.fontSize = '14px';
+          slideDiv.appendChild(errorText);
+        });
+        
+        // 添加图片加载成功日志（仅在开发环境）
+        if (import.meta.env.DEV) {
+          img.addEventListener('load', () => {
+            console.log(`轮播图图片加载成功 [${index}]:`, item.src);
+          });
+        }
+        
         slideDiv.appendChild(img);
       } else if (item.type === 'video') {
         const video = document.createElement('video');
@@ -87,6 +114,12 @@ export class Carousel {
         video.muted = true;
         video.preload = 'metadata';
         video.controls = item.controls !== false;
+        
+        // 添加视频加载错误处理
+        video.addEventListener('error', (e) => {
+          console.error(`轮播图视频加载失败 [${index}]:`, item.src, e);
+        });
+        
         slideDiv.appendChild(video);
       }
 
