@@ -1,12 +1,16 @@
 /**
- * Vite 插件：确保 src/ 目录中的文件优先于 public/ 目录中的文件
+ * Vite 插件：复制 src/ 目录中的非模块文件到 dist/
  * 
- * 注意：此插件主要用于处理历史遗留问题。如果 public/ 和 src/ 中有同名文件冲突，
- * 此插件会在构建完成后将 src/ 中的文件复制到 dist/，覆盖 public/ 中复制的文件。
+ * 问题：Vite 不会自动复制 src/ 目录中的普通 JS/HTML 文件（非 ES 模块）到 dist/。
+ * 这些文件（如 load-header.js、header.html）需要通过 <script src> 直接引用，
+ * 需要手动复制到 dist/ 目录。
  * 
- * 最佳实践：应该避免在 public/ 中放置源代码文件，public/ 应该只包含静态资源。
+ * 解决方案：在构建完成后（writeBundle 钩子），将 src/ 中指定的文件复制到 dist/。
  * 
- * 如果 public/ 和 src/ 中不再有冲突文件，可以考虑移除此插件。
+ * 最佳实践：
+ * - public/ 目录应该只包含静态资源（图片、字体等）
+ * - 源代码文件应该放在 src/ 目录
+ * - 非模块文件需要通过此插件复制到 dist/
  */
 import fs from 'fs';
 import path from 'path';
@@ -52,29 +56,6 @@ export function vitePrioritySrcPlugin() {
       });
       
       console.log('✅ src/ 目录文件复制完成');
-      
-      console.log('🔧 检查 src/ 目录中的文件优先级...');
-      
-      priorityFiles.forEach(relativePath => {
-        const srcPath = path.join(srcDir, relativePath);
-        const distPath = path.join(distDir, 'src', relativePath);
-        
-        if (fs.existsSync(srcPath)) {
-          // 确保目标目录存在
-          const distDirPath = path.dirname(distPath);
-          if (!fs.existsSync(distDirPath)) {
-            fs.mkdirSync(distDirPath, { recursive: true });
-          }
-          
-          // 复制 src/ 中的文件到 dist/，覆盖 public/ 中复制的文件
-          fs.copyFileSync(srcPath, distPath);
-          console.log(`✅ 优先使用 src/${relativePath}，覆盖 public/ 中的文件`);
-        } else {
-          console.warn(`⚠️  src/${relativePath} 不存在，跳过`);
-        }
-      });
-      
-      console.log('✅ src/ 目录文件优先级处理完成');
     }
   };
 }
