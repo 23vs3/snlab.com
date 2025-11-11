@@ -259,24 +259,126 @@ async function loadHeader() {
       }
     }
     
-    // 立即应用当前语言到 header（如果 i18n 已初始化）
+    // 立即应用当前语言到 header（不依赖 i18n 初始化）
     function applyCurrentLanguage() {
-      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.updatePageContent === 'function') {
+      // 优先从 i18n 实例获取语言（如果已初始化）
+      let currentLang = 'zh-CN';
+      
+      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.getLang === 'function') {
         try {
-          // 立即更新 header 中的文本
-          window.i18n.updatePageContent();
-          console.log('Language applied to header after load');
+          currentLang = window.i18n.getLang();
+          // 如果 i18n 已初始化，直接使用它的 updatePageContent
+          if (typeof window.i18n.updatePageContent === 'function') {
+            window.i18n.updatePageContent();
+            console.log('Language applied to header via i18n:', currentLang);
+            return;
+          }
         } catch (e) {
-          console.warn('Error applying language to header:', e);
+          console.warn('Error getting language from i18n:', e);
         }
-      } else {
-        // 如果 i18n 还未初始化，稍后重试
-        setTimeout(applyCurrentLanguage, 100);
       }
+      
+      // 如果 i18n 未初始化，直接从 localStorage 或 URL 读取
+      if (currentLang === 'zh-CN') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = urlParams.get('lang');
+        if (urlLang && (urlLang === 'zh-CN' || urlLang === 'en')) {
+          currentLang = urlLang;
+        } else {
+          const savedLang = localStorage.getItem('language');
+          if (savedLang && (savedLang === 'zh-CN' || savedLang === 'en')) {
+            currentLang = savedLang;
+          }
+        }
+      }
+      
+      // 手动应用语言到 header（不依赖 i18n）
+      applyLanguageToHeader(currentLang);
+    }
+    
+    // 手动应用语言到 header 的函数
+    function applyLanguageToHeader(lang) {
+      // 完整的翻译映射（包含 header 需要的所有文本）
+      const translations = {
+        'zh-CN': {
+          'nav.products': '产品',
+          'nav.support': '购买与支持',
+          'nav.stories': '资讯订阅',
+          'common.chinese': '中文',
+          'common.english': '英文',
+          'common.home': '首页'
+        },
+        'en': {
+          'nav.products': 'Products',
+          'nav.support': 'Support',
+          'nav.stories': 'Stories',
+          'common.chinese': 'Chinese',
+          'common.english': 'English',
+          'common.home': 'Home'
+        }
+      };
+      
+      const texts = translations[lang] || translations['zh-CN'];
+      
+      // 更新所有带有 data-i18n 属性的元素（包括 header 内的所有元素）
+      const header = document.querySelector('header');
+      const elementsToUpdate = header ? header.querySelectorAll('[data-i18n]') : document.querySelectorAll('[data-i18n]');
+      
+      elementsToUpdate.forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (key && texts[key]) {
+          // 跳过语言切换按钮本身（它只包含 SVG 图标，没有文本）
+          if (element.id === 'lang-toggle' || element.id === 'lang-toggle-mobile') {
+            return; // 跳过，这些按钮只包含 SVG
+          }
+          
+          // 对于链接和普通元素，直接更新文本内容
+          if (element.tagName === 'A' || element.tagName === 'SPAN' || element.tagName === 'P') {
+            element.textContent = texts[key];
+          } else if (element.tagName === 'BUTTON') {
+            // 对于按钮，检查是否有 SVG 子元素
+            const svg = element.querySelector('svg');
+            if (svg) {
+              // 如果有 SVG，只更新 SVG 后的文本节点，或创建新的文本节点
+              const textNodes = Array.from(element.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+              if (textNodes.length > 0) {
+                // 更新现有文本节点
+                textNodes.forEach(node => {
+                  if (node.textContent.trim()) {
+                    node.textContent = texts[key];
+                  }
+                });
+              } else {
+                // 如果没有文本节点，在 SVG 后添加
+                const textNode = document.createTextNode(texts[key]);
+                element.appendChild(textNode);
+              }
+            } else {
+              // 没有 SVG，直接更新文本
+              element.textContent = texts[key];
+            }
+          } else {
+            // 其他元素，直接更新文本
+            element.textContent = texts[key];
+          }
+        }
+      });
+      
+      console.log('Language applied to header manually:', lang);
     }
     
     // 立即尝试应用语言
     applyCurrentLanguage();
+    
+    // 监听语言变化事件，确保 header 始终显示正确语言
+    window.addEventListener('languageChanged', function(e) {
+      const lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');
+      applyLanguageToHeader(lang);
+      // 如果 i18n 已初始化，也调用它的 updatePageContent 确保完整更新
+      if (window.i18n && typeof window.i18n.updatePageContent === 'function') {
+        window.i18n.updatePageContent();
+      }
+    });
     
     // 立即尝试一次，然后延迟尝试
     ensureLangToggleInit();
@@ -292,6 +394,10 @@ async function loadHeader() {
       ensureLangToggleInit();
       applyCurrentLanguage(); // 再次应用语言
     }, 1000); // 再次重试，确保在非常慢的网络下也能工作
+    setTimeout(() => {
+      ensureLangToggleInit();
+      applyCurrentLanguage(); // 最后一次尝试，确保 i18n 初始化后也能应用
+    }, 2000); // 再次重试，确保在非常慢的网络下也能工作
     
   } catch (error) {
     console.error('Error loading header:', error);
