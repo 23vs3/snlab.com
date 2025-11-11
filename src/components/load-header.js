@@ -330,25 +330,32 @@ async function loadHeader() {
     function applyCurrentLanguage() {
       // 使用统一的语言读取函数
       const currentLang = getCurrentLanguage();
+      console.log('[load-header] Applying language:', currentLang, 'i18n available:', !!window.i18n);
       
       // 如果 i18n 已初始化，使用它的 updatePageContent（更完整）
       if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.updatePageContent === 'function') {
         try {
+          const i18nLang = window.i18n.getLang ? window.i18n.getLang() : null;
+          console.log('[load-header] i18n current language:', i18nLang, 'target language:', currentLang);
+          
           // 确保 i18n 的语言状态与当前读取的语言一致
-          if (window.i18n.getLang && window.i18n.getLang() !== currentLang) {
+          if (i18nLang !== currentLang) {
             // 如果语言不一致，更新 i18n 的状态（但不更新 URL，避免循环）
+            console.log('[load-header] Syncing i18n language from', i18nLang, 'to', currentLang);
             window.i18n.setLang(currentLang, false);
           } else {
+            // 语言一致，直接更新页面内容
             window.i18n.updatePageContent();
           }
-          console.log('Language applied to header via i18n:', currentLang);
+          console.log('[load-header] Language applied to header via i18n:', currentLang);
           return;
         } catch (e) {
-          console.warn('Error applying language via i18n:', e);
+          console.warn('[load-header] Error applying language via i18n:', e);
         }
       }
       
       // 如果 i18n 未初始化，手动应用语言到 header
+      console.log('[load-header] Applying language manually (i18n not ready):', currentLang);
       applyLanguageToHeader(currentLang);
     }
     
@@ -380,6 +387,9 @@ async function loadHeader() {
       const header = document.querySelector('header');
       const elementsToUpdate = header ? header.querySelectorAll('[data-i18n]') : document.querySelectorAll('[data-i18n]');
       
+      console.log('[load-header] applyLanguageToHeader: lang=', lang, 'elements found=', elementsToUpdate.length);
+      
+      let updatedCount = 0;
       elementsToUpdate.forEach(element => {
         const key = element.getAttribute('data-i18n');
         if (key && texts[key]) {
@@ -391,6 +401,7 @@ async function loadHeader() {
           // 对于链接和普通元素，直接更新文本内容
           if (element.tagName === 'A' || element.tagName === 'SPAN' || element.tagName === 'P') {
             element.textContent = texts[key];
+            updatedCount++;
           } else if (element.tagName === 'BUTTON') {
             // 对于按钮，检查是否有 SVG 子元素
             const svg = element.querySelector('svg');
@@ -402,29 +413,94 @@ async function loadHeader() {
                 textNodes.forEach(node => {
                   if (node.textContent.trim()) {
                     node.textContent = texts[key];
+                    updatedCount++;
                   }
                 });
               } else {
                 // 如果没有文本节点，在 SVG 后添加
                 const textNode = document.createTextNode(texts[key]);
                 element.appendChild(textNode);
+                updatedCount++;
               }
             } else {
               // 没有 SVG，直接更新文本
               element.textContent = texts[key];
+              updatedCount++;
             }
           } else {
             // 其他元素，直接更新文本
             element.textContent = texts[key];
+            updatedCount++;
           }
         }
       });
       
-      console.log('Language applied to header manually:', lang);
+      // 更新语言下拉菜单的激活状态
+      const langDropdowns = [
+        document.getElementById('lang-dropdown'),
+        document.getElementById('lang-dropdown-mobile')
+      ];
+      
+      langDropdowns.forEach(dropdown => {
+        if (!dropdown) return;
+        const options = dropdown.querySelectorAll('.lang-option');
+        options.forEach(option => {
+          const optionLang = option.getAttribute('data-lang');
+          if (optionLang === lang) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        });
+      });
+      
+      console.log('[load-header] Language applied to header manually:', lang, 'updated', updatedCount, 'elements');
     }
     
     // 立即尝试应用语言
     applyCurrentLanguage();
+    
+    // 监听 i18n 初始化完成事件（如果存在）
+    // 当 i18n 初始化后，确保 header 语言正确
+    let i18nInitCheckCount = 0;
+    const maxI18nInitChecks = 50; // 最多检查 50 次（约 5 秒）
+    
+    function checkAndSyncI18nLanguage() {
+      i18nInitCheckCount++;
+      
+      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.getLang === 'function') {
+        const currentLang = getCurrentLanguage();
+        const i18nLang = window.i18n.getLang();
+        
+        // 如果 i18n 的语言与当前应该显示的语言不一致，同步它
+        if (i18nLang !== currentLang) {
+          console.log('[load-header] i18n language mismatch detected, syncing:', i18nLang, '->', currentLang);
+          try {
+            window.i18n.setLang(currentLang, false);
+            // 重新应用语言到 header
+            applyCurrentLanguage();
+          } catch (e) {
+            console.warn('[load-header] Error syncing i18n language:', e);
+          }
+        } else {
+          // 语言一致，确保 header 已更新
+          if (window.i18n.updatePageContent) {
+            window.i18n.updatePageContent();
+          }
+        }
+        return; // i18n 已初始化，停止检查
+      }
+      
+      // 如果 i18n 还未初始化，继续检查
+      if (i18nInitCheckCount < maxI18nInitChecks) {
+        setTimeout(checkAndSyncI18nLanguage, 100);
+      } else {
+        console.warn('[load-header] i18n not initialized after', maxI18nInitChecks, 'checks');
+      }
+    }
+    
+    // 开始检查 i18n 初始化状态
+    checkAndSyncI18nLanguage();
     
     // 更新导航链接的语言参数（在语言变化时调用）
     function updateNavLinksLanguage() {
@@ -460,6 +536,9 @@ async function loadHeader() {
     window.addEventListener('languageChanged', function(e) {
       // 使用统一的语言读取函数，确保语言状态一致
       const lang = (e.detail && e.detail.lang) || getCurrentLanguage();
+      console.log('[load-header] languageChanged event received, lang:', lang);
+      
+      // 先手动应用语言到 header
       applyLanguageToHeader(lang);
       
       // 更新所有导航链接，确保它们包含正确的语言参数
