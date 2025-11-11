@@ -725,18 +725,43 @@ function initMobileMenu() {
 console.log('[load-header] Script file loaded');
 (function() {
   console.log('[load-header] IIFE executing, readyState:', document.readyState);
+  
+  // 添加全局错误处理，确保能看到任何错误
+  window.addEventListener('error', function(e) {
+    if (e.filename && e.filename.includes('load-header')) {
+      console.error('[load-header] Script error:', e.message, e.filename, e.lineno);
+    }
+  });
+  
+  // 添加未捕获的 Promise 错误处理
+  window.addEventListener('unhandledrejection', function(e) {
+    if (e.reason && e.reason.toString().includes('load-header')) {
+      console.error('[load-header] Unhandled promise rejection:', e.reason);
+    }
+  });
+  
   if (document.readyState === 'loading') {
     console.log('[load-header] Waiting for DOMContentLoaded');
     document.addEventListener('DOMContentLoaded', function() {
       console.log('[load-header] DOMContentLoaded fired, calling loadHeader');
-      setTimeout(loadHeader, 0);
+      setTimeout(function() {
+        try {
+          loadHeader();
+        } catch (e) {
+          console.error('[load-header] Error calling loadHeader in DOMContentLoaded:', e);
+        }
+      }, 0);
     });
   } else {
     // DOM 已经准备好，立即执行
     console.log('[load-header] DOM already ready, calling loadHeader immediately');
     setTimeout(function() {
       console.log('[load-header] setTimeout callback executing, calling loadHeader');
-      loadHeader();
+      try {
+        loadHeader();
+      } catch (e) {
+        console.error('[load-header] Error calling loadHeader in setTimeout:', e);
+      }
     }, 0);
   }
 })();
