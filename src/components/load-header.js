@@ -717,8 +717,9 @@ function initMobileMenu() {
 
 // 页面加载完成后自动加载 header
 // 确保在 DOM 准备好后执行
+console.log('[load-header] Script file loaded');
 (function() {
-  console.log('[load-header] Script loaded, readyState:', document.readyState);
+  console.log('[load-header] IIFE executing, readyState:', document.readyState);
   if (document.readyState === 'loading') {
     console.log('[load-header] Waiting for DOMContentLoaded');
     document.addEventListener('DOMContentLoaded', function() {
@@ -727,8 +728,11 @@ function initMobileMenu() {
     });
   } else {
     // DOM 已经准备好，立即执行
-    console.log('[load-header] DOM already ready, calling loadHeader');
-    setTimeout(loadHeader, 0);
+    console.log('[load-header] DOM already ready, calling loadHeader immediately');
+    setTimeout(function() {
+      console.log('[load-header] setTimeout callback executing, calling loadHeader');
+      loadHeader();
+    }, 0);
   }
 })();
 
