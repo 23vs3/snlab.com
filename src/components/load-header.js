@@ -121,6 +121,10 @@ async function loadHeader() {
     // 初始化移动端菜单交互（如果还没有初始化）
     initMobileMenu();
     
+    // 触发 header 加载完成事件，通知其他模块（如 SmoothScroll）更新
+    window.dispatchEvent(new CustomEvent('headerLoaded'));
+    console.log('[load-header] Header loaded event dispatched');
+    
     // 初始化国际化（header 加载后，延迟一点确保按钮已渲染）
     // 使用多重检查确保在模块加载后也能初始化
     let retryCount = 0;

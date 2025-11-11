@@ -56,7 +56,9 @@ class App {
   }
 
   private initializeSmoothScroll(): void {
+    console.log('[main] 初始化 SmoothScroll');
     new SmoothScroll();
+    console.log('[main] SmoothScroll 初始化完成');
   }
 
   public destroy(): void {
@@ -68,9 +70,11 @@ class App {
 // 初始化应用
 // 确保即使 header 还未加载，也能正常初始化轮播和产品列表
 function initApp() {
+  console.log('[main] initApp() 被调用');
   // 直接初始化 App，不等待 header（header 会在 load-header.js 中处理）
   // 这样可以确保轮播和产品列表能够正常显示
   new App();
+  console.log('[main] App 实例已创建');
 }
 
 if (document.readyState === 'loading') {
