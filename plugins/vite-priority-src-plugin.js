@@ -23,17 +23,35 @@ export function vitePrioritySrcPlugin() {
       const srcDir = path.join(rootDir, 'src');
       const distDir = options.dir || path.join(rootDir, 'dist');
       
-      // 需要优先处理的文件列表（相对于 src/ 的路径）
-      // 如果 public/ 和 src/ 中不再有冲突，此列表可以为空
-      const priorityFiles = [
-        // 'components/header.html',      // 已删除 public/src/components/
-        // 'components/load-header.js'    // 已删除 public/src/components/
+      // 需要复制到 dist/ 的文件列表（相对于 src/ 的路径）
+      // 这些文件是普通的 JS/HTML 文件，不会被 Vite 自动处理，需要手动复制
+      const filesToCopy = [
+        'components/header.html',
+        'components/load-header.js'
       ];
       
-      // 如果没有需要处理的文件，直接返回
-      if (priorityFiles.length === 0) {
-        return;
-      }
+      console.log('🔧 复制 src/ 目录中的非模块文件到 dist/...');
+      
+      filesToCopy.forEach(relativePath => {
+        const srcPath = path.join(srcDir, relativePath);
+        const distPath = path.join(distDir, 'src', relativePath);
+        
+        if (fs.existsSync(srcPath)) {
+          // 确保目标目录存在
+          const distDirPath = path.dirname(distPath);
+          if (!fs.existsSync(distDirPath)) {
+            fs.mkdirSync(distDirPath, { recursive: true });
+          }
+          
+          // 复制文件到 dist/
+          fs.copyFileSync(srcPath, distPath);
+          console.log(`✅ 复制 src/${relativePath} 到 dist/`);
+        } else {
+          console.warn(`⚠️  src/${relativePath} 不存在，跳过`);
+        }
+      });
+      
+      console.log('✅ src/ 目录文件复制完成');
       
       console.log('🔧 检查 src/ 目录中的文件优先级...');
       
