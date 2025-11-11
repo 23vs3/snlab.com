@@ -36,12 +36,48 @@ async function loadHeader() {
       }
     }
     
-    // 根据当前页面位置更新链接路径
+    // 统一的语言读取函数（用于更新链接）
+    function getCurrentLanguageForLinks() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = urlParams.get('lang');
+      if (urlLang && (urlLang === 'zh-CN' || urlLang === 'en')) {
+        return urlLang;
+      }
+      const savedLang = localStorage.getItem('language');
+      if (savedLang && (savedLang === 'zh-CN' || savedLang === 'en')) {
+        return savedLang;
+      }
+      return 'zh-CN';
+    }
+    
+    // 为 URL 添加语言参数的辅助函数
+    function addLangToUrl(url) {
+      const lang = getCurrentLanguageForLinks();
+      if (!url) return url;
+      
+      // 如果是锚点链接（#开头），不需要添加语言参数
+      if (url.startsWith('#')) {
+        return url;
+      }
+      
+      // 如果已经有语言参数，更新它
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        urlObj.searchParams.set('lang', lang);
+        return urlObj.pathname + urlObj.search + (urlObj.hash || '');
+      } catch (e) {
+        // 如果 URL 解析失败，直接拼接
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}lang=${lang}`;
+      }
+    }
+    
+    // 根据当前页面位置更新链接路径，并添加语言参数
     const brandLink = document.getElementById('header-brand');
     const allNavLinks = document.querySelectorAll('.nav-link, .mobile-nav-links a');
     
     if (isIndexPage) {
-      // 首页：使用锚点链接
+      // 首页：使用锚点链接（锚点链接不需要语言参数）
       if (brandLink) {
         brandLink.href = '#top';
       }
@@ -50,21 +86,27 @@ async function loadHeader() {
         const href = link.getAttribute('href');
         if (href && href.includes('index.html#')) {
           link.href = href.replace('index.html#', '#');
+        } else if (href && !href.startsWith('#') && !href.startsWith('http')) {
+          // 如果不是锚点链接，添加语言参数
+          link.href = addLangToUrl(href);
         }
       });
     } else {
-      // 非首页：使用绝对路径
+      // 非首页：使用绝对路径，并添加语言参数
       if (brandLink) {
-        brandLink.href = '/';
+        brandLink.href = addLangToUrl('/');
       }
       
       allNavLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (href && href.includes('index.html#')) {
-          // 将 index.html#products 改为 /#products
+          // 将 index.html#products 改为 /#products（锚点链接不需要语言参数）
           link.href = href.replace('index.html#', '/#');
         } else if (href && href === 'index.html') {
-          link.href = '/';
+          link.href = addLangToUrl('/');
+        } else if (href && !href.startsWith('#') && !href.startsWith('http')) {
+          // 如果不是锚点链接或外部链接，添加语言参数
+          link.href = addLangToUrl(href);
         }
       });
     }
@@ -259,45 +301,55 @@ async function loadHeader() {
       }
     }
     
+    // 统一的语言读取函数（与 i18n.ts 中的逻辑保持一致）
+    function getCurrentLanguage() {
+      // 1. 优先从 URL 参数读取
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = urlParams.get('lang');
+      if (urlLang && (urlLang === 'zh-CN' || urlLang === 'en')) {
+        return urlLang;
+      }
+      
+      // 2. 从 localStorage 读取
+      const savedLang = localStorage.getItem('language');
+      if (savedLang && (savedLang === 'zh-CN' || savedLang === 'en')) {
+        return savedLang;
+      }
+      
+      // 3. 从浏览器语言读取
+      const browserLang = navigator.language.startsWith('zh') ? 'zh-CN' : 'en';
+      if (browserLang && (browserLang === 'zh-CN' || browserLang === 'en')) {
+        return browserLang;
+      }
+      
+      // 4. 默认返回中文
+      return 'zh-CN';
+    }
+    
     // 立即应用当前语言到 header（不依赖 i18n 初始化）
     function applyCurrentLanguage() {
-      let currentLang = null;
+      // 使用统一的语言读取函数
+      const currentLang = getCurrentLanguage();
       
-      // 优先从 i18n 实例获取语言（如果已初始化）
-      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.getLang === 'function') {
+      // 如果 i18n 已初始化，使用它的 updatePageContent（更完整）
+      if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.updatePageContent === 'function') {
         try {
-          currentLang = window.i18n.getLang();
-          // 如果 i18n 已初始化，直接使用它的 updatePageContent
-          if (typeof window.i18n.updatePageContent === 'function' && currentLang) {
-            window.i18n.updatePageContent();
-            console.log('Language applied to header via i18n:', currentLang);
-            return;
-          }
-        } catch (e) {
-          console.warn('Error getting language from i18n:', e);
-        }
-      }
-      
-      // 如果 i18n 未初始化或获取失败，直接从 URL 或 localStorage 读取
-      if (!currentLang) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlLang = urlParams.get('lang');
-        if (urlLang && (urlLang === 'zh-CN' || urlLang === 'en')) {
-          currentLang = urlLang;
-        } else {
-          const savedLang = localStorage.getItem('language');
-          if (savedLang && (savedLang === 'zh-CN' || savedLang === 'en')) {
-            currentLang = savedLang;
+          // 确保 i18n 的语言状态与当前读取的语言一致
+          if (window.i18n.getLang && window.i18n.getLang() !== currentLang) {
+            // 如果语言不一致，更新 i18n 的状态（但不更新 URL，避免循环）
+            window.i18n.setLang(currentLang, false);
           } else {
-            currentLang = 'zh-CN'; // 默认语言
+            window.i18n.updatePageContent();
           }
+          console.log('Language applied to header via i18n:', currentLang);
+          return;
+        } catch (e) {
+          console.warn('Error applying language via i18n:', e);
         }
       }
       
-      // 手动应用语言到 header（不依赖 i18n）
-      if (currentLang) {
-        applyLanguageToHeader(currentLang);
-      }
+      // 如果 i18n 未初始化，手动应用语言到 header
+      applyLanguageToHeader(currentLang);
     }
     
     // 手动应用语言到 header 的函数
@@ -374,10 +426,45 @@ async function loadHeader() {
     // 立即尝试应用语言
     applyCurrentLanguage();
     
+    // 更新导航链接的语言参数（在语言变化时调用）
+    function updateNavLinksLanguage() {
+      const currentPathname = window.location.pathname;
+      const currentIsIndexPage = currentPathname === '/' || currentPathname === '/index.html';
+      const brandLink = document.getElementById('header-brand');
+      const allNavLinks = document.querySelectorAll('.nav-link, .mobile-nav-links a');
+      
+      if (currentIsIndexPage) {
+        // 首页：锚点链接不需要更新
+        // 但如果有非锚点链接，需要更新
+        allNavLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('#') && !href.startsWith('http')) {
+            link.href = addLangToUrl(href);
+          }
+        });
+      } else {
+        // 非首页：更新所有链接
+        if (brandLink) {
+          brandLink.href = addLangToUrl('/');
+        }
+        allNavLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('#') && !href.startsWith('http')) {
+            link.href = addLangToUrl(href);
+          }
+        });
+      }
+    }
+    
     // 监听语言变化事件，确保 header 始终显示正确语言
     window.addEventListener('languageChanged', function(e) {
-      const lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');
+      // 使用统一的语言读取函数，确保语言状态一致
+      const lang = (e.detail && e.detail.lang) || getCurrentLanguage();
       applyLanguageToHeader(lang);
+      
+      // 更新所有导航链接，确保它们包含正确的语言参数
+      updateNavLinksLanguage();
+      
       // 如果 i18n 已初始化，也调用它的 updatePageContent 确保完整更新
       if (window.i18n && typeof window.i18n.updatePageContent === 'function') {
         window.i18n.updatePageContent();
