@@ -261,14 +261,14 @@ async function loadHeader() {
     
     // 立即应用当前语言到 header（不依赖 i18n 初始化）
     function applyCurrentLanguage() {
-      // 优先从 i18n 实例获取语言（如果已初始化）
-      let currentLang = 'zh-CN';
+      let currentLang = null;
       
+      // 优先从 i18n 实例获取语言（如果已初始化）
       if (typeof window !== 'undefined' && window.i18n && typeof window.i18n.getLang === 'function') {
         try {
           currentLang = window.i18n.getLang();
           // 如果 i18n 已初始化，直接使用它的 updatePageContent
-          if (typeof window.i18n.updatePageContent === 'function') {
+          if (typeof window.i18n.updatePageContent === 'function' && currentLang) {
             window.i18n.updatePageContent();
             console.log('Language applied to header via i18n:', currentLang);
             return;
@@ -278,8 +278,8 @@ async function loadHeader() {
         }
       }
       
-      // 如果 i18n 未初始化，直接从 localStorage 或 URL 读取
-      if (currentLang === 'zh-CN') {
+      // 如果 i18n 未初始化或获取失败，直接从 URL 或 localStorage 读取
+      if (!currentLang) {
         const urlParams = new URLSearchParams(window.location.search);
         const urlLang = urlParams.get('lang');
         if (urlLang && (urlLang === 'zh-CN' || urlLang === 'en')) {
@@ -288,12 +288,16 @@ async function loadHeader() {
           const savedLang = localStorage.getItem('language');
           if (savedLang && (savedLang === 'zh-CN' || savedLang === 'en')) {
             currentLang = savedLang;
+          } else {
+            currentLang = 'zh-CN'; // 默认语言
           }
         }
       }
       
       // 手动应用语言到 header（不依赖 i18n）
-      applyLanguageToHeader(currentLang);
+      if (currentLang) {
+        applyLanguageToHeader(currentLang);
+      }
     }
     
     // 手动应用语言到 header 的函数
