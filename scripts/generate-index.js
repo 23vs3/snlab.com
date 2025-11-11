@@ -147,9 +147,17 @@ try {
   const inlineScript = `
   <script>
     // 内联产品列表数据（用于语言切换）
-    const PRODUCTS_DATA = ${JSON.stringify(products)};
+    // 使用 IIFE 避免全局变量污染，并检查是否已存在
+    (function() {
+      if (typeof window !== 'undefined' && window.PRODUCTS_DATA) {
+        console.warn('PRODUCTS_DATA already exists, skipping inline data');
+        return;
+      }
+      window.PRODUCTS_DATA = ${JSON.stringify(products)};
+    })();
     
     function updateProductsLanguage(lang) {
+      const PRODUCTS_DATA = window.PRODUCTS_DATA;
       if (!PRODUCTS_DATA || !Array.isArray(PRODUCTS_DATA)) return;
       
       const productsGrid = document.getElementById('products-grid');
@@ -186,6 +194,9 @@ try {
       updateProductsLanguage(lang);
     });
   </script>`;
+  
+  // 移除生产环境的 Vite 客户端脚本（开发环境专用）
+  template = template.replace(/<script\s+type\s*=\s*["']module["'][^>]*src\s*=\s*["']\/@vite\/client["'][^>]*><\/script>\s*/gi, '');
   
   // 在 </body> 之前插入脚本
   if (template.includes('</body>')) {

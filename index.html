@@ -711,6 +711,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       const menuToggle = document.getElementById('menu-toggle');
       const mobileMenu = document.getElementById('mobile-menu');
+      if (!mobileMenu) return; // 如果元素不存在，直接返回
       const navLinks = mobileMenu.querySelectorAll('.mobile-nav-links a');
       
       // 切换菜单显示/隐藏

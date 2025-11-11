@@ -110,6 +110,9 @@ try {
     });
   </script>`;
   
+  // 移除生产环境的 Vite 客户端脚本（开发环境专用）
+  template = template.replace(/<script\s+type\s*=\s*["']module["'][^>]*src\s*=\s*["']\/@vite\/client["'][^>]*><\/script>\s*/gi, '');
+  
   // 在 </body> 之前插入脚本
   if (template.includes('</body>')) {
     template = template.replace('</body>', `${inlineScript}</body>`);
