@@ -141,10 +141,59 @@ try {
   }).join('');
   
   // 替换产品列表占位符
-  template = template.replace(
-    /<div class="grid" id="products-grid">[\s\S]*?<\/div>/,
-    `<div class="grid" id="products-grid">${productsHtml}</div>`
-  );
+  // 使用更精确的方法：找到 products-grid 的开始位置，然后找到对应的结束标签
+  const productsGridIdRegex = /<div[^>]*id\s*=\s*["']products-grid["'][^>]*>/i;
+  const match = template.match(productsGridIdRegex);
+  
+  if (match && match.index !== undefined) {
+    const startIndex = match.index;
+    const startTagEnd = startIndex + match[0].length;
+    
+    // 从开始标签后开始查找，计算 div 的嵌套深度
+    let depth = 1;
+    let i = startTagEnd;
+    let inString = false;
+    let stringChar = null;
+    
+    while (i < template.length && depth > 0) {
+      const char = template[i];
+      const prevChar = i > 0 ? template[i - 1] : null;
+      const isEscaped = prevChar === '\\';
+      
+      if (!isEscaped) {
+        if ((char === '"' || char === "'") && !inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar && inString) {
+          inString = false;
+          stringChar = null;
+        } else if (!inString) {
+          // 检查是否是 div 标签的开始或结束
+          const remaining = template.substring(i);
+          if (remaining.startsWith('<div')) {
+            depth++;
+            i += 4;
+            continue;
+          } else if (remaining.startsWith('</div>')) {
+            depth--;
+            if (depth === 0) {
+              // 找到对应的结束标签
+              const endIndex = i + 6; // </div> 的长度
+              const before = template.substring(0, startIndex);
+              const after = template.substring(endIndex);
+              template = before + `<div class="grid" id="products-grid">${productsHtml}</div>` + after;
+              break;
+            }
+            i += 6;
+            continue;
+          }
+        }
+      }
+      i++;
+    }
+  } else {
+    console.warn('⚠️  无法找到 products-grid 容器，跳过替换');
+  }
   
   // 添加内联脚本，用于语言切换
   const inlineScript = `
@@ -207,11 +256,18 @@ try {
   // 移除生产环境的 Vite 客户端脚本（开发环境专用）
   template = template.replace(/<script\s+type\s*=\s*["']module["'][^>]*src\s*=\s*["']\/@vite\/client["'][^>]*><\/script>\s*/gi, '');
   
-  // 在 </body> 之前插入脚本
-  if (template.includes('</body>')) {
-    template = template.replace('</body>', `${inlineScript}</body>`);
+  // 检查是否已经存在内联脚本（避免重复插入）
+  const hasInlineScript = template.includes('window.PRODUCTS_DATA') || template.includes('updateProductsLanguage');
+  
+  // 在 </body> 之前插入脚本（如果还没有）
+  if (!hasInlineScript) {
+    if (template.includes('</body>')) {
+      template = template.replace('</body>', `${inlineScript}</body>`);
+    } else {
+      template += inlineScript;
+    }
   } else {
-    template += inlineScript;
+    console.log('⚠️  检测到已存在内联脚本，跳过插入');
   }
   
   fs.writeFileSync(indexTemplatePath, template);
