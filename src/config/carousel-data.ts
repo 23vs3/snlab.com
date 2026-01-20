@@ -19,6 +19,7 @@ const getImagePath = (path: string): string => {
   return `${cleanBase}${normalizedPath}`;
 };
 
+// #ds
 export const carouselSlides: SlideItem[] = [
   {
     type: 'image',
@@ -35,11 +36,11 @@ export const carouselSlides: SlideItem[] = [
     src: getImagePath('/images/carousel_2.png'),
     alt: '都市出行与耳机'
   },
-  {
-    type: 'video',
-    src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-    poster: 'https://picsum.photos/seed/bo-hero-video/1600/900',
-    controls: true
-  }
+  // {
+  //   type: 'video',
+  //   src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+  //   poster: 'https://picsum.photos/seed/bo-hero-video/1600/900',
+  //   controls: true
+  // }
 ];
 
