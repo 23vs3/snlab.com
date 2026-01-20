@@ -608,7 +608,7 @@ async function loadHeader() {
     const fallbackHeader = document.createElement('header');
     fallbackHeader.innerHTML = `
       <div class="container nav-bar">
-        <a href="index.html" class="brand">SINIAN LAB</a>
+        <a href="index.html" class="brand">SNILAB</a>
       </div>
     `;
     const existingHeader = document.querySelector('header');

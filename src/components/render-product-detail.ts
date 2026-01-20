@@ -83,7 +83,7 @@ export function renderProductDetail(productId: string | null): void {
   }
 
   // 更新页面标题
-  document.title = `${product.name[currentLang]} - SINIAN LAB`;
+  document.title = `${product.name[currentLang]} - SNILAB`;
 
   // 更新面包屑导航
   const productNameSpan = document.getElementById('product-name');

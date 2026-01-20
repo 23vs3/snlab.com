@@ -1,4 +1,4 @@
-# SINIAN LAB 官网
+# SNILAB 官网
 
 基于 TypeScript 的现代音频品牌官网，参考 Bang & Olufsen 设计风格。
 

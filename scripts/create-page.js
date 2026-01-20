@@ -56,7 +56,7 @@ try {
   fs.writeFileSync(outputPath, template);
   
   console.log(`✅ 页面创建成功: ${pageName}.html`);
-  console.log(`📝 标题: ${title} - SINIAN LAB`);
+  console.log(`📝 标题: ${title} - SNILAB`);
   console.log(`🔧 已自动包含热重载支持`);
   console.log(`🌐 访问地址: http://localhost:3001/${pageName}.html`);
   

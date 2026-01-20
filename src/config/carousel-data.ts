@@ -24,17 +24,12 @@ export const carouselSlides: SlideItem[] = [
   {
     type: 'image',
     src: getImagePath('/images/carousel_1.png'),
-    alt: '沉浸音乐的瞬间'
+    alt: ''
   },
-//   {
-//     type: 'image',
-//     src: 'https://picsum.photos/seed/bo-hero2/1600/900',
-//     alt: '优雅客厅中的音响'
-//   },
   {
     type: 'image',
     src: getImagePath('/images/carousel_2.png'),
-    alt: '都市出行与耳机'
+    alt: ''
   },
   // {
   //   type: 'video',

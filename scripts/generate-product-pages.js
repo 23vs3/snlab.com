@@ -177,7 +177,7 @@ products.forEach(product => {
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<title>.*?<\/title>/,
-    `<title>${productDataJson.name[defaultLang]} - SINIAN LAB</title>`
+    `<title>${productDataJson.name[defaultLang]} - SNILAB</title>`
   );
   
   // 内联产品特性（features）
@@ -283,7 +283,7 @@ products.forEach(product => {
         }
       });
       if (PRODUCT_DATA.name && PRODUCT_DATA.name[lang]) {
-        document.title = PRODUCT_DATA.name[lang] + ' - SINIAN LAB';
+        document.title = PRODUCT_DATA.name[lang] + ' - SNILAB';
       }
       
       // 更新特性（features）

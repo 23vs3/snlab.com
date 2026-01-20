@@ -108,4 +108,4 @@ SNILAB reserves the right to update, modify, and interpret after-sales terms. Im
 
 ---
 
-**SINIAN LAB reserves the right to final interpretation of these warranty terms.**
+**SNILAB reserves the right to final interpretation of these warranty terms.**

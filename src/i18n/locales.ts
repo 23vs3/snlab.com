@@ -136,7 +136,7 @@ export const translations: Record<Language, Translations> = {
       followUs: '关注我们',
       wechat: '微信公众号',
       xiaohongshu: '小红书',
-      copyright: '© SINIAN LAB 2025'
+      copyright: '© SNILAB 2025'
     },
     pages: {
       warranty: {
@@ -230,7 +230,7 @@ export const translations: Record<Language, Translations> = {
       followUs: 'Follow Us',
       wechat: 'WeChat Official Account',
       xiaohongshu: 'Xiaohongshu',
-      copyright: '© SINIAN LAB 2025'
+      copyright: '© SNILAB 2025'
     },
     pages: {
       warranty: {
