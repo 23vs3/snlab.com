@@ -121,6 +121,13 @@ async function loadHeader() {
     // 初始化移动端菜单交互（如果还没有初始化）
     initMobileMenu();
     
+    // 根据主题设置logo
+    updateBrandLogo();
+    
+    // 监听主题变化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', updateBrandLogo);
+    
     // 触发 header 加载完成事件，通知其他模块（如 SmoothScroll）更新
     window.dispatchEvent(new CustomEvent('headerLoaded'));
     console.log('[load-header] Header loaded event dispatched');
@@ -722,6 +729,29 @@ function initMobileMenu() {
       }
     });
   }, 50);
+}
+
+/**
+ * 根据当前主题更新品牌logo
+ */
+function updateBrandLogo() {
+  const brandLogo = document.querySelector('.brand-logo');
+  if (!brandLogo) {
+    console.warn('[load-header] Brand logo not found');
+    return;
+  }
+  
+  // 检测当前主题
+  const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // 根据主题设置logo路径
+  // 注意：如果public目录在Vite中，可能需要使用 /images/ 而不是 /public/images/
+  const logoPath = isDarkMode 
+    ? '/images/brandLogo_white.png' 
+    : '/images/brandLogo_black.png';
+  
+  brandLogo.src = logoPath;
+  console.log('[load-header] Brand logo updated:', logoPath, 'Dark mode:', isDarkMode);
 }
 
 // 页面加载完成后自动加载 header
