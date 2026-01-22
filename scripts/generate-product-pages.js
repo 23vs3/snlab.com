@@ -123,7 +123,7 @@ products.forEach(product => {
         productId: 'snilab-s',
         name: { 'zh-CN': '无线蓝牙音箱 SNILAB-S', 'en': 'Wireless Bluetooth Speaker SNILAB-S' },
         tagline: { 'zh-CN': '重新定义便携音乐体验', 'en': 'Redefine portable music experience' },
-        price: { 'zh-CN': '¥599', 'en': '¥599' },
+        basePrice: { 'zh-CN': '¥599', 'en': '¥599' },
         mainImage: 'https://picsum.photos/seed/snilab-s-detail/800/600'
       },
     };
@@ -151,7 +151,7 @@ products.forEach(product => {
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<div class="product-price" id="product-price">加载中\.\.\.<\/div>/,
-    `<div class="product-price" id="product-price">${productDataJson.price[defaultLang]}</div>`
+    `<div class="product-price" id="product-price">${productDataJson.basePrice[defaultLang]}</div>`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<img src="" alt="产品图" id="product-image" \/>/,
@@ -255,7 +255,7 @@ products.forEach(product => {
       const elements = [
         { id: 'product-title', key: 'name' },
         { id: 'product-tagline', key: 'tagline' },
-        { id: 'product-price', key: 'price' },
+        { id: 'product-price', key: 'basePrice' },
         { id: 'product-name', key: 'name' }
       ];
       elements.forEach(function(item) {
