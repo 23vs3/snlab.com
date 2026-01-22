@@ -1,3 +1,4 @@
+import { ProductSpecs } from '@/types/index.js';
 import { products } from '../config/products-data.js';
 import { i18n } from '../i18n/i18n.js';
 import type { Language } from '../i18n/locales.js';
@@ -114,9 +115,9 @@ export function renderProductDetail(productId: string | null): void {
   // 更新产品图片
   const productImage = document.getElementById('product-image') as HTMLImageElement;
   if (productImage) {
-    productImage.src = product.image;
+    productImage.src = product.mainImage || '';
     productImage.alt = product.name[currentLang];
-    console.log('[renderProductDetail] Updated product-image:', product.image);
+    console.log('[renderProductDetail] Updated product-image:', product.mainImage);
   } else {
     console.warn('[renderProductDetail] product-image element not found');
   }
@@ -133,23 +134,23 @@ export function renderProductDetail(productId: string | null): void {
     console.warn('[renderProductDetail] product-title element not found');
   }
   
-  if (productTagline) {
+  if (productTagline && product.tagline) {
     productTagline.textContent = product.tagline[currentLang];
     console.log('[renderProductDetail] Updated product-tagline:', product.tagline[currentLang]);
   } else {
     console.warn('[renderProductDetail] product-tagline element not found');
   }
   
-  if (productPrice) {
-    productPrice.textContent = product.price[currentLang];
-    console.log('[renderProductDetail] Updated product-price:', product.price[currentLang]);
+  if (productPrice && product.priceDisplay) {
+    productPrice.textContent = product.priceDisplay[currentLang];
+    console.log('[renderProductDetail] Updated product-price:', product.priceDisplay[currentLang]);
   } else {
     console.warn('[renderProductDetail] product-price element not found');
   }
 
   // 更新产品特性
   const featuresGrid = document.getElementById('features-grid');
-  if (featuresGrid) {
+  if (featuresGrid && product.features) {
     featuresGrid.innerHTML = product.features.map(feature => `
       <div class="feature-card">
         <div class="feature-icon">${feature.icon}</div>
@@ -162,37 +163,92 @@ export function renderProductDetail(productId: string | null): void {
     console.warn('[renderProductDetail] features-grid element not found');
   }
 
-  // 更新产品规格
-  const specsGrid = document.getElementById('specs-grid');
-  if (specsGrid) {
-    specsGrid.innerHTML = `
-      <div class="spec-group">
-        <h3>${product.specs.audio.label[currentLang]}</h3>
-        <ul class="spec-list">
-          ${product.specs.audio.items.map(item => `
-            <li>
-              <span class="spec-label">${item.name[currentLang]}</span>
-              <span class="spec-value">${item.value[currentLang]}</span>
-            </li>
-          `).join('')}
-        </ul>
-      </div>
-      <div class="spec-group">
-        <h3>${product.specs.physical.label[currentLang]}</h3>
-        <ul class="spec-list">
-          ${product.specs.physical.items.map(item => `
-            <li>
-              <span class="spec-label">${item.name[currentLang]}</span>
-              <span class="spec-value">${item.value[currentLang]}</span>
-            </li>
-          `).join('')}
-        </ul>
-      </div>
-    `;
-    console.log('[renderProductDetail] Updated specs-grid');
-  } else {
-    console.warn('[renderProductDetail] specs-grid element not found');
+  // // 更新产品规格
+  // const specsGrid = document.getElementById('specs-grid');
+  // if (specsGrid && product.specs) {
+  //   specsGrid.innerHTML = `
+  //     <div class="spec-group">
+  //       <h3>${product.specs.audio.label[currentLang]}</h3>
+  //       <ul class="spec-list">
+  //         ${product.specs.audio.items.map(item => `
+  //           <li>
+  //             <span class="spec-label">${item.name[currentLang]}</span>
+  //             <span class="spec-value">${item.value[currentLang]}</span>
+  //           </li>
+  //         `).join('')}
+  //       </ul>
+  //     </div>
+  //     <div class="spec-group">
+  //       <h3>${product.specs.physical.label[currentLang]}</h3>
+  //       <ul class="spec-list">
+  //         ${product.specs.physical.items.map(item => `
+  //           <li>
+  //             <span class="spec-label">${item.name[currentLang]}</span>
+  //             <span class="spec-value">${item.value[currentLang]}</span>
+  //           </li>
+  //         `).join('')}
+  //       </ul>
+  //     </div>
+  //   `;
+  //   console.log('[renderProductDetail] Updated specs-grid');
+  // } else {
+  //   console.warn('[renderProductDetail] specs-grid element not found');
+  // }
+
+  // 辅助函数：安全地渲染规格组
+function renderSpecGroup(specs: ProductSpecs | undefined, groupKey: string, currentLang: Language) {
+  // 检查规格组是否存在且有数据
+  if (!specs?.[groupKey]?.label?.[currentLang]) return '';
+  if (!Array.isArray(specs[groupKey].items) || specs[groupKey].items.length === 0) return '';
+  
+  const group = specs[groupKey];
+  const items = group.items
+    .filter(item => item && typeof item === 'object')
+    .filter(item => item?.name?.[currentLang] || item?.value?.[currentLang])
+    .map(item => `
+      <li>
+        <span class="spec-label">${item.name?.[currentLang] || ''}</span>
+        <span class="spec-value">${item.value?.[currentLang] || ''}</span>
+      </li>
+    `)
+    .join('');
+  
+  // 如果没有有效的项目，则不渲染整个组
+  if (!items) return '';
+  
+  return `
+    <div class="spec-group ${groupKey}-specs">
+      <h3>${group.label[currentLang]}</h3>
+      <ul class="spec-list">${items}</ul>
+    </div>
+  `;
+}
+
+// 更新产品规格
+const specsGrid = document.getElementById('specs-grid');
+if (specsGrid) {
+  let specsHTML = '';
+  
+  // 只有product.specs存在时才尝试渲染
+  if (product?.specs) {
+    // 尝试渲染各种规格组
+    const specGroups = ['audio', 'physical', 'technical', 'specifications'];
+    specGroups.forEach(groupKey => {
+      specsHTML += renderSpecGroup(product.specs, groupKey, currentLang);
+    });
   }
+  
+  // 根据是否有内容来显示
+  if (specsHTML) {
+    specsGrid.innerHTML = specsHTML;
+    console.log(`[renderProductDetail] Rendered ${document.querySelectorAll('.spec-group').length} spec groups`);
+  } else {
+    specsGrid.innerHTML = '<div class="no-data">暂无规格信息</div>';
+    console.log('[renderProductDetail] No specs to display');
+  }
+} else {
+  console.warn('[renderProductDetail] specs-grid element not found');
+}
 
   console.log('[renderProductDetail] Rendering completed for product:', productId);
 
