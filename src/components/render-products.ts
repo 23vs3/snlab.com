@@ -38,7 +38,7 @@ export function renderProductsList(containerSelector: string = '#products-grid')
     
     article.innerHTML = `
       <div class="card-media">
-        <img src="${product.image}" alt="${product.name[currentLang]}" />
+        <img src="${product.mainImage}" alt="${product.name[currentLang]}" />
       </div>
       <div class="card-body">
         <h3>${product.name[currentLang]}</h3>
