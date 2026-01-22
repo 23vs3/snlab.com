@@ -124,7 +124,7 @@ products.forEach(product => {
         name: { 'zh-CN': '无线蓝牙音箱 SNILAB-S', 'en': 'Wireless Bluetooth Speaker SNILAB-S' },
         tagline: { 'zh-CN': '重新定义便携音乐体验', 'en': 'Redefine portable music experience' },
         basePrice: { 'zh-CN': '¥599', 'en': '¥599' },
-        mainImage: 'https://picsum.photos/seed/snilab-s-detail/800/600'
+        mainImage: '/images/product_mainImage.png'
       },
     };
     productDataJson = fallbackProducts[product.productId] || fallbackProducts['snilab-s'];

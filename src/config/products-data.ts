@@ -524,12 +524,12 @@ export const products: Product[] = [
       'en': '¥599'
     },
     
-    mainImage: 'https://cdn.example.com/products/wireless-speaker-pro/main.jpg',
+    mainImage: '/images/product_mainImage.png',
     defaultImages: [
-      'https://cdn.example.com/products/wireless-speaker-pro/1.jpg',
-      'https://cdn.example.com/products/wireless-speaker-pro/2.jpg',
-      'https://cdn.example.com/products/wireless-speaker-pro/3.jpg',
-      'https://cdn.example.com/products/wireless-speaker-pro/4.jpg'
+      '/images/product_defaultImage1.png',
+      '/images/product_defaultImage2.png',
+      '/images/product_defaultImage3.png',
+      '/images/product_defaultImage4.png'
     ],
     
     // 属性定义
@@ -557,7 +557,7 @@ export const products: Product[] = [
               'en': 'Orange'
             },
             value: '#FFA500',
-            previewImage: 'https://cdn.example.com/products/wireless-speaker-pro/colors/red-preview.jpg',
+            previewImage: '/images/product_colorOrangePreImage.png',
             description: {
               'zh-CN': '橙橘色，展现热情与动感',
               'en': 'Orange, showing passion and energy'
@@ -575,7 +575,7 @@ export const products: Product[] = [
               'en': 'Black'
             },
             value: '#000000',
-            previewImage: 'https://cdn.example.com/products/wireless-speaker-pro/colors/red-preview.jpg',
+            previewImage: '/images/product_colorBlackPreImage.png',
             description: {
               'zh-CN': '暗黑，展现神秘与稳重',
               'en': 'Black, showing mystery and steady'
@@ -592,7 +592,7 @@ export const products: Product[] = [
               'en': 'Milk White'
             },
             value: '#FFFFFF',
-            previewImage: 'https://cdn.example.com/products/wireless-speaker-pro/colors/red-preview.jpg',
+            previewImage: '/images/product_colorWhitePreImage.png',
             description: {
               'zh-CN': '奶白，展现纯洁与清新',
               'en': 'Milk White, showing pure and fresh'
@@ -609,7 +609,7 @@ export const products: Product[] = [
               'en': 'Lake Blue'
             },
             value: '#007BFF',
-            previewImage: 'https://cdn.example.com/products/wireless-speaker-pro/colors/red-preview.jpg',
+            previewImage: '/images/product_colorBluePreImage.png',
             description: {
               'zh-CN': '湖蓝，展现清新与宁静',
               'en': 'Lake Blue, showing fresh and calm'
@@ -638,10 +638,10 @@ export const products: Product[] = [
         price: 599,
         stockCount: 100,
         images: [
-          'https://cdn.example.com/products/wireless-speaker-pro/orange/1.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/orange/2.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/orange/3.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/orange/4.jpg'
+          '/images/product_skuOrangeImage1.png',
+          '/images/product_skuOrangeImage2.png',
+          '/images/product_skuOrangeImage3.png',
+          '/images/product_skuOrangeImage4.png'
         ],
         isDefault: true,
         isActive: true,
@@ -670,10 +670,10 @@ export const products: Product[] = [
         price: 599,
         stockCount: 100,
         images: [
-          'https://cdn.example.com/products/wireless-speaker-pro/black/1.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/black/2.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/black/3.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/black/4.jpg'
+          '/images/product_skuBlackImage1.png',
+          '/images/product_skuBlackImage2.png',
+          '/images/product_skuBlackImage3.png',
+          '/images/product_skuBlackImage4.png'
         ],
         isDefault: true,
         isActive: true,
@@ -701,10 +701,10 @@ export const products: Product[] = [
         price: 599,
         stockCount: 100,
         images: [
-          'https://cdn.example.com/products/wireless-speaker-pro/white/1.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/white/2.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/white/3.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/white/4.jpg'
+          '/images/product_skuWhiteImage1.png',
+          '/images/product_skuWhiteImage2.png',
+          '/images/product_skuWhiteImage3.png',
+          '/images/product_skuWhiteImage4.png'
         ],
         isDefault: true,
         isActive: true,
@@ -732,10 +732,10 @@ export const products: Product[] = [
         price: 599,
         stockCount: 100,
         images: [
-          'https://cdn.example.com/products/wireless-speaker-pro/lake-blue/1.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/lake-blue/2.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/lake-blue/3.jpg',
-          'https://cdn.example.com/products/wireless-speaker-pro/lake-blue/4.jpg'
+          '/images/product_skuBlueImage1.png',
+          '/images/product_skuBlueImage2.png',
+          '/images/product_skuBlueImage3.png',
+          '/images/product_skuBlueImage4.png'
         ],
         isDefault: true,
         isActive: true,
