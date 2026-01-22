@@ -33,18 +33,14 @@ try {
   } else {
     // 如果解析失败，使用硬编码的产品列表
     products = [
-      { productId: 'a1' },
-      { productId: 'h100' },
-      { productId: 'a5' }
+      { productId: 'snilab-s' },
     ];
   }
 } catch (e) {
   // 如果读取失败，使用硬编码的产品列表
   console.warn('无法读取产品数据，使用默认产品列表');
   products = [
-    { productId: 'a1' },
-    { productId: 'h100' },
-    { productId: 'a5' }
+    { productId: 'snilab-s' },
   ];
 }
 
@@ -123,29 +119,15 @@ products.forEach(product => {
   // 如果无法从构建文件获取，使用硬编码的基本数据
   if (!productDataJson) {
     const fallbackProducts = {
-      'a1': {
-        productId: 'a1',
-        name: { 'zh-CN': '便携式音箱 A1', 'en': 'Portable Speaker A1' },
-        tagline: { 'zh-CN': '聆听强劲且悦耳的音效。灵活便携设计。', 'en': 'Experience powerful and pleasant sound. Flexible portable design.' },
-        price: { 'zh-CN': '来自 ¥2,980', 'en': 'From ¥2,980' },
-        image: 'https://picsum.photos/seed/a1-detail/800/600'
+      'snilab-s': {
+        productId: 'snilab-s',
+        name: { 'zh-CN': '无线蓝牙音箱 SNILAB-S', 'en': 'Wireless Bluetooth Speaker SNILAB-S' },
+        tagline: { 'zh-CN': '重新定义便携音乐体验', 'en': 'Redefine portable music experience' },
+        price: { 'zh-CN': '¥599', 'en': '¥599' },
+        mainImage: 'https://picsum.photos/seed/snilab-s-detail/800/600'
       },
-      'h100': {
-        productId: 'h100',
-        name: { 'zh-CN': '头戴耳机 H100', 'en': 'Headphones H100' },
-        tagline: { 'zh-CN': '卓越音质，舒适佩戴。', 'en': 'Excellent sound quality, comfortable to wear.' },
-        price: { 'zh-CN': '来自 ¥1,980', 'en': 'From ¥1,980' },
-        image: 'https://picsum.photos/seed/h100/800/600'
-      },
-      'a5': {
-        productId: 'a5',
-        name: { 'zh-CN': '多房间音响 A5', 'en': 'Multi-Room Speaker A5' },
-        tagline: { 'zh-CN': '艺术与科技的融合，打造沉浸式家居音效。', 'en': 'The fusion of art and technology, creating immersive home audio.' },
-        price: { 'zh-CN': '来自 ¥5,980', 'en': 'From ¥5,980' },
-        image: 'https://picsum.photos/seed/a5/800/600'
-      }
     };
-    productDataJson = fallbackProducts[product.productId] || fallbackProducts['a1'];
+    productDataJson = fallbackProducts[product.productId] || fallbackProducts['snilab-s'];
   }
   
   // 修改模板，直接替换占位符文本为实际产品数据（服务端渲染）
@@ -173,7 +155,7 @@ products.forEach(product => {
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<img src="" alt="产品图" id="product-image" \/>/,
-    `<img src="${productDataJson.image}" alt="${productDataJson.name[defaultLang]}" id="product-image" />`
+    `<img src="${productDataJson.mainImage}" alt="${productDataJson.name[defaultLang]}" id="product-image" />`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<title>.*?<\/title>/,
