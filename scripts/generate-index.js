@@ -120,7 +120,7 @@ try {
   const productsHtml = products.map(product => {
     const name = product.name[defaultLang] || product.name || '';
     const description = product.description[defaultLang] || product.description || '';
-    const image = product.image || '';
+    const image = product.mainImage || '';
     const productId = product.productId || '';
     
     // 产品链接包含默认语言参数，确保跳转时语言状态正确传递
