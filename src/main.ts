@@ -27,7 +27,7 @@ class App {
     const productsGrid = document.querySelector('#products-grid');
     if (productsGrid) {
       // 检查是否已经有内联的产品列表（生产环境）
-      const hasInlineProducts = productsGrid.querySelectorAll('.card').length > 0;
+      const hasInlineProducts = productsGrid.querySelectorAll('.product-image-card').length > 0;
       
       if (!hasInlineProducts) {
         // 开发环境或没有内联内容时，通过 JavaScript 渲染

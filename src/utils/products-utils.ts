@@ -943,6 +943,110 @@ import type {
       };
     }
   }
+
+  // ========== UI展示管理工具 ==========
+export class ProductDisplayUtils {
+    /**
+     * 获取产品的展示图片数据（用于首页四图拼接）
+     * 只返回图片展示所需的最小数据
+     */
+    static getProductDisplayImages(product: Product): Array<{
+      imageUrl: string;
+      skuId: string;
+      colorName?: string;
+      isMain: boolean;
+    }> {
+      if (!product.skus || product.skus.length === 0) {
+        // 如果没有SKU，返回默认图片
+        return [{
+          imageUrl: product.mainImage || product.defaultImages?.[0] || '/images/placeholder.jpg',
+          skuId: product.productId,
+          isMain: true
+        }];
+      }
+      
+      // 获取默认SKU
+      const defaultSku = ProductUtils.getDefaultSku(product) || product.skus[0];
+      
+      // 获取主图
+      const mainImage = product.mainImage || 
+                       defaultSku.images?.[0] || 
+                       product.defaultImages?.[0] || 
+                       '/images/placeholder.jpg';
+      
+      // 构建主图数据
+      const result = [{
+        imageUrl: mainImage,
+        skuId: defaultSku.skuId,
+        colorName: this.getColorName(product, defaultSku.attributes?.color),
+        isMain: true
+      }];
+      
+      // 获取其他SKU的图片（排除默认SKU）
+      const otherSkus = product.skus
+        .filter(sku => sku.skuId !== defaultSku.skuId)
+        .slice(0, 3); // 最多取3个其他SKU
+      
+      otherSkus.forEach(sku => {
+        const skuImage = sku.images?.[0] || 
+                        this.getSkuColorPreview(product, sku) || 
+                        '/images/placeholder.jpg';
+        
+        result.push({
+          imageUrl: skuImage,
+          skuId: sku.skuId,
+          colorName: this.getColorName(product, sku.attributes?.color),
+          isMain: false
+        });
+      });
+      
+      // 如果不足4张图，用产品默认图片补全
+      while (result.length < 4) {
+        const placeholderIndex = result.length;
+        result.push({
+          imageUrl: product.defaultImages?.[placeholderIndex] || '/images/placeholder.jpg',
+          skuId: `${product.productId}-placeholder-${placeholderIndex}`,
+          colorName: undefined,
+          isMain: false
+        });
+      }
+      
+      return result;
+    }
+    
+    /**
+     * 根据颜色ID获取颜色名称
+     */
+    private static getColorName(product: Product, colorId?: string): string | undefined {
+      if (!colorId) return undefined;
+      
+      const colorAttribute = product.attributes.find(attr => 
+        attr.attribute.attributeId === 'color'
+      );
+      
+      if (!colorAttribute) return undefined;
+      
+      const colorOption = colorAttribute.options.find(opt => opt.optionId === colorId);
+      return colorOption?.optionName?.['zh-CN'];
+    }
+    
+    /**
+     * 获取SKU颜色的预览图
+     */
+    private static getSkuColorPreview(product: Product, sku: ProductSKU): string | undefined {
+      const colorId = sku.attributes?.color;
+      if (!colorId) return undefined;
+      
+      const colorAttribute = product.attributes.find(attr => 
+        attr.attribute.attributeId === 'color'
+      );
+      
+      if (!colorAttribute) return undefined;
+      
+      const colorOption = colorAttribute.options.find(opt => opt.optionId === colorId);
+      return colorOption?.previewImage;
+    }
+  }
   
   // 默认导出所有工具类
   export default {

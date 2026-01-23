@@ -19,7 +19,13 @@ export default defineConfig({
       }
     },
     // 确保静态资源被正确复制
-    copyPublicDir: true
+    copyPublicDir: true,
+    //确保CSS文件被打包
+    cssCodeSplit: true
+  },
+  // CSS相关的插件配置
+  css: {
+    devSourcemap: true,  // 开发环境sourcemap
   },
   server: {
     host: '0.0.0.0', // 允许外部访问
