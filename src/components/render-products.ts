@@ -76,8 +76,9 @@ import type { Language } from '../i18n/locales.js';
 // }
 
 // new plan！！！！！！！！！！！
-import { generateProductImagesHTML } from '../utils/product-card-template.ts';
-import '../styles/product-images.css';
+import '../styles/product-item.css';
+// 更新导入的模板函数名称
+import { generateProductItemHTML } from '../utils/product-card-template.js';
 
 export function renderProductsList(containerSelector: string = '#products-grid'): void {
   const container = document.querySelector(containerSelector);
@@ -86,8 +87,8 @@ export function renderProductsList(containerSelector: string = '#products-grid')
     return;
   }
 
-  // 检查容器是否已经有内容（可能是构建时内联的产品列表）
-  const existingCards = container.querySelectorAll('.product-image-card');
+  // 检查容器是否已经有内容
+  const existingCards = container.querySelectorAll('.product-item-card');
   if (existingCards.length > 0) {
     console.log('[render-products] 检测到已内联的产品列表，跳过重新渲染');
     return;
@@ -98,10 +99,10 @@ export function renderProductsList(containerSelector: string = '#products-grid')
 
   const currentLang = i18n.getLang() as Language;
 
-  // 使用模板函数生成产品卡片HTML
+  // 使用新的模板函数生成产品卡片HTML
   const productsHTML = products
     .filter(product => product.status === 'active')
-    .map(product => generateProductImagesHTML(product, currentLang))
+    .map(product => generateProductItemHTML(product, currentLang))
     .join('');
   
   container.innerHTML = productsHTML;

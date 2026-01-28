@@ -1,4 +1,76 @@
+import { products } from '../config/products-data.ts';
+import type { Product } from '@/types';
+
 export type Language = 'zh-CN' | 'en';
+
+/**
+ * 根据产品数据动态生成产品翻译对象
+ */
+function generateProductTranslations(products: Product[], lang: Language): Record<string, any> {
+  const productTranslations: Record<string, any> = {};
+  
+  products.forEach(product => {
+    const productTranslation: any = {
+      name: product.name[lang] || product.name['zh-CN'] || '',
+      description: product.description?.[lang] || product.description?.['zh-CN'] || '',
+    };
+    
+    // 添加 tagline（如果有）
+    if (product.tagline) {
+      productTranslation.tagline = product.tagline[lang] || product.tagline['zh-CN'] || '';
+    }
+    
+    // 添加价格显示（如果有）
+    if (product.priceDisplay) {
+      productTranslation.price = product.priceDisplay[lang] || product.priceDisplay['zh-CN'] || '';
+    }
+    
+    // 添加通用翻译文本
+    productTranslation.learnMore = lang === 'zh-CN' ? '了解更多信息' : 'Learn More';
+    productTranslation.experience = lang === 'zh-CN' ? '店内体验' : 'Store Experience';
+    
+    // 添加特性翻译（features）- 根据实际数据结构处理
+    if (product.features && product.features.length > 0) {
+      productTranslation.features = {};
+      product.features.forEach((feature, index) => {
+        // 使用特性的标题作为键名（转换为小写并移除空格）
+        const featureKey = feature.title?.['zh-CN']?.toLowerCase().replace(/\s+/g, '') || `feature${index}`;
+        productTranslation.features[featureKey] = feature.title?.[lang] || feature.title?.['zh-CN'] || '';
+        productTranslation.features[`${featureKey}Desc`] = feature.description?.[lang] || feature.description?.['zh-CN'] || '';
+      });
+    }
+    
+    // 添加规格翻译（specs）- 根据实际数据结构处理
+    if (product.specs) {
+      productTranslation.specs = {};
+      Object.keys(product.specs).forEach(specCategory => {
+        const specCategoryData = product.specs![specCategory];
+        // 添加规格类别标签
+        if (specCategoryData.label) {
+          productTranslation.specs[specCategory] = specCategoryData.label[lang] || specCategoryData.label['zh-CN'] || '';
+        }
+        
+        // 添加规格项（根据实际结构，items 中的 name 字段）
+        if (specCategoryData.items && Array.isArray(specCategoryData.items)) {
+          specCategoryData.items.forEach((item) => {
+            if (item.name) {
+              // 使用规格项的名称作为键名（转换为小写并移除空格）
+              const itemKey = item.name['zh-CN']?.toLowerCase().replace(/\s+/g, '') || 
+                            item.name[lang]?.toLowerCase().replace(/\s+/g, '') || '';
+              if (itemKey) {
+                productTranslation.specs[itemKey] = item.name[lang] || item.name['zh-CN'] || '';
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    productTranslations[product.productId] = productTranslation;
+  });
+  
+  return productTranslations;
+}
 
 export interface Translations {
   nav: {
@@ -55,47 +127,11 @@ export interface Translations {
     chinese: string;
     english: string;
   };
-  products: {
-    a1: {
-      name: string;
-      description: string;
-      tagline: string;
-      price: string;
-      learnMore: string;
-      experience: string;
-      features: {
-        battery: string;
-        batteryDesc: string;
-        waterproof: string;
-        waterproofDesc: string;
-        wireless: string;
-        wirelessDesc: string;
-      };
-      specs: {
-        audio: string;
-        physical: string;
-        frequency: string;
-        spl: string;
-        driver: string;
-        bluetooth: string;
-        dimensions: string;
-        weight: string;
-        battery: string;
-        chargeTime: string;
-      };
-    };
-    h100: {
-      name: string;
-      description: string;
-    };
-    a5: {
-      name: string;
-      description: string;
-    };
-  };
+  products: Record<string, any>; // 改为动态类型，支持任意产品ID
 }
 
-export const translations: Record<Language, Translations> = {
+// 生成基础翻译对象
+const baseTranslations = {
   'zh-CN': {
     nav: {
       products: '产品',
@@ -150,44 +186,6 @@ export const translations: Record<Language, Translations> = {
       home: '首页',
       chinese: '中文',
       english: '英文'
-    },
-    products: {
-      a1: {
-        name: '便携式音箱 A1',
-        description: '轻巧随行，持久续航，全天候陪伴你的灵感。',
-        tagline: '聆听强劲且悦耳的音效。灵活便携设计。',
-        price: '来自 ¥2,980',
-        learnMore: '了解更多信息',
-        experience: '店内体验',
-        features: {
-          battery: '持久续航',
-          batteryDesc: '18小时连续播放，全天候陪伴你的音乐时光',
-          waterproof: '防水设计',
-          waterproofDesc: 'IPX7防水等级，无惧户外环境挑战',
-          wireless: '无线充电',
-          wirelessDesc: '内置Qi无线充电板，为设备提供便捷充电'
-        },
-        specs: {
-          audio: '音频规格',
-          physical: '物理规格',
-          frequency: '频率响应',
-          spl: '最大声压级',
-          driver: '驱动单元',
-          bluetooth: '蓝牙版本',
-          dimensions: '尺寸',
-          weight: '重量',
-          battery: '电池容量',
-          chargeTime: '充电时间'
-        }
-      },
-      h100: {
-        name: '头戴耳机 H100',
-        description: '沉浸降噪，细腻还原，日常与通勤的惬意之选。'
-      },
-      a5: {
-        name: '多房间音响 A5',
-        description: '温润木质与金属质感，设计与听感的平衡之作。'
-      }
     }
   },
   'en': {
@@ -244,45 +242,18 @@ export const translations: Record<Language, Translations> = {
       home: 'Home',
       chinese: 'Chinese',
       english: 'English'
-    },
-    products: {
-      a1: {
-        name: 'Portable Speaker A1',
-        description: 'Lightweight and portable, long-lasting battery, accompanies your inspiration all day long.',
-        tagline: 'Experience powerful and pleasant sound. Flexible portable design.',
-        price: 'From ¥2,980',
-        learnMore: 'Learn More',
-        experience: 'Store Experience',
-        features: {
-          battery: 'Long Battery Life',
-          batteryDesc: '18 hours of continuous playback, accompanies your music all day long',
-          waterproof: 'Waterproof Design',
-          waterproofDesc: 'IPX7 waterproof rating, fearless of outdoor challenges',
-          wireless: 'Wireless Charging',
-          wirelessDesc: 'Built-in Qi wireless charging pad, providing convenient charging for devices'
-        },
-        specs: {
-          audio: 'Audio Specifications',
-          physical: 'Physical Specifications',
-          frequency: 'Frequency Response',
-          spl: 'Max Sound Pressure Level',
-          driver: 'Driver Unit',
-          bluetooth: 'Bluetooth Version',
-          dimensions: 'Dimensions',
-          weight: 'Weight',
-          battery: 'Battery Capacity',
-          chargeTime: 'Charging Time'
-        }
-      },
-      h100: {
-        name: 'Headphones H100',
-        description: 'Immersive noise cancellation, delicate sound reproduction, perfect for daily use and commuting.'
-      },
-      a5: {
-        name: 'Multi-Room Speaker A5',
-        description: 'A balance of warm wood and metal texture, design and sound quality.'
-      }
     }
   }
 };
 
+// 动态生成包含产品翻译的完整翻译对象
+export const translations: Record<Language, Translations> = {
+  'zh-CN': {
+    ...baseTranslations['zh-CN'],
+    products: generateProductTranslations(products, 'zh-CN')
+  },
+  'en': {
+    ...baseTranslations['en'],
+    products: generateProductTranslations(products, 'en')
+  }
+};

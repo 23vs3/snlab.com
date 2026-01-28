@@ -398,14 +398,13 @@ try {
   // 获取默认语言
   const defaultLang = 'zh-CN';
   
-  // 生成四图拼接的产品列表 HTML
+  // 生成完整的产品卡片HTML
   const productsHtml = products
     .filter(product => product.status === 'active')
-    .map(product => generateProductImagesHTML(product, defaultLang))
+    .map(product => generateProductItemHTML(product, defaultLang))
     .join('');
   
   // 替换产品列表占位符
-  // 使用更精确的方法：找到 products-grid 的开始位置，然后找到对应的结束标签
   const productsGridIdRegex = /<div[^>]*id\s*=\s*["']products-grid["'][^>]*>/i;
   const match = template.match(productsGridIdRegex);
   
@@ -460,7 +459,7 @@ try {
   }
   
   // 添加内联CSS样式
-  const inlineCss = getProductImagesCSS();
+  const inlineCss = getProductItemCSS();
   if (inlineCss) {
     const styleTag = `<style>${inlineCss}</style>`;
     if (template.includes('</head>')) {
@@ -468,7 +467,7 @@ try {
     } else {
       template = styleTag + template;
     }
-    console.log('✅ 已添加四图拼接CSS样式');
+    console.log('✅ 已添加产品卡片CSS样式');
   }
   
   // 添加内联脚本，用于语言切换
@@ -484,22 +483,60 @@ try {
       window.PRODUCTS_DATA = ${JSON.stringify(products)};
     })();
     
-    // 更新产品图片链接的语言参数
-    function updateProductImageLinks(lang) {
+    // 更新产品卡片语言参数
+    function updateProductCardsLanguage(lang) {
       const productsGrid = document.getElementById('products-grid');
       if (!productsGrid) return;
       
+      // 更新产品信息
+      const productInfos = productsGrid.querySelectorAll('.product-info');
+      productInfos.forEach(info => {
+        const productName = info.querySelector('.product-name');
+        const productDescription = info.querySelector('.product-description');
+        const moreButton = info.querySelector('.product-more-button');
+        
+        const productId = info.closest('.product-item-card')?.dataset.productId;
+        const product = window.PRODUCTS_DATA?.find(p => p.productId === productId);
+        
+        if (product) {
+          // 更新产品名称
+          if (productName && product.name && product.name[lang]) {
+            productName.textContent = product.name[lang];
+          }
+          
+          // 更新产品描述
+          if (productDescription && product.description && product.description[lang]) {
+            productDescription.textContent = product.description[lang];
+          } else if (productDescription && product.description) {
+            productDescription.textContent = product.description['zh-CN'] || '';
+          }
+          
+          // 更新了解更多按钮文本
+          if (moreButton) {
+            moreButton.textContent = lang === 'zh-CN' ? '了解更多' : 'Learn More';
+          }
+          
+          // 更新了解更多链接
+          if (moreButton) {
+            const currentHref = moreButton.getAttribute('href');
+            const url = new URL(currentHref, window.location.origin);
+            url.searchParams.set('lang', lang);
+            moreButton.setAttribute('href', url.pathname + url.search);
+          }
+        }
+      });
+      
+      // 更新图片链接的语言参数
       const imageLinks = productsGrid.querySelectorAll('.collage-image-link');
       imageLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (href) {
-          // 更新URL中的lang参数
           const url = new URL(href, window.location.origin);
           url.searchParams.set('lang', lang);
           link.setAttribute('href', url.pathname + url.search);
         }
         
-        // 更新图片的alt属性（如果需要）
+        // 更新图片的alt和title属性
         const productId = link.dataset.productId;
         const colorName = link.dataset.colorName;
         const product = window.PRODUCTS_DATA?.find(p => p.productId === productId);
@@ -519,7 +556,7 @@ try {
     // 监听语言变化事件
     window.addEventListener('languageChanged', function(e) {
       const lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');
-      updateProductImageLinks(lang);
+      updateProductCardsLanguage(lang);
     });
   </script>`;
   
@@ -527,7 +564,7 @@ try {
   template = template.replace(/<script\s+type\s*=\s*["']module["'][^>]*src\s*=\s*["']\/@vite\/client["'][^>]*><\/script>\s*/gi, '');
   
   // 检查是否已经存在内联脚本（避免重复插入）
-  const hasInlineScript = template.includes('window.PRODUCTS_DATA') || template.includes('updateProductImageLinks');
+  const hasInlineScript = template.includes('window.PRODUCTS_DATA') || template.includes('updateProductCardsLanguage');
   
   // 在 </body> 之前插入脚本（如果还没有）
   if (!hasInlineScript) {
@@ -541,22 +578,23 @@ try {
   }
   
   fs.writeFileSync(indexTemplatePath, template);
-  console.log(`✅ 首页四图拼接产品列表已内联: /index.html`);
+  console.log(`✅ 首页产品卡片列表已内联: /index.html`);
 
 } catch (e) {
   console.error('❌ 生成首页产品列表时出错:', e);
   process.exit(1);
 }
 
-// ========== 四图拼接相关工具函数 ==========
+// ========== 产品卡片相关工具函数 ==========
 
 /**
- * 生成四图拼接的产品卡片HTML
- * 主图在左侧，右侧三张小图垂直排列
+ * 生成完整的产品卡片HTML
+ * 包含产品信息区域和四图拼接区域
  */
-function generateProductImagesHTML(product, lang = 'zh-CN') {
+function generateProductItemHTML(product, lang = 'zh-CN') {
   const displayImages = getProductDisplayImages(product);
   const productName = product.name[lang] || product.name['zh-CN'] || '产品';
+  const productDescription = product.description?.[lang] || product.description?.['zh-CN'] || '';
   const images = displayImages.slice(0, 4);
   
   // 补全4张图片
@@ -571,24 +609,42 @@ function generateProductImagesHTML(product, lang = 'zh-CN') {
   // 确保第一个图片是主图
   const mainImageIndex = images.findIndex(img => img.isMain);
   if (mainImageIndex > 0) {
-    // 将主图移到第一个位置
     const [mainImage] = images.splice(mainImageIndex, 1);
     images.unshift(mainImage);
   } else if (mainImageIndex === -1) {
-    // 如果没有标记为isMain的图片，确保第一个是主图
     images[0].isMain = true;
   }
   
+  // 生成四图拼接的HTML
+  const fourImagesHTML = generateFourImagesHTML(product, images, productName, lang);
+  
+  // 生成"了解更多"按钮的国际化文本
+  const moreText = lang === 'zh-CN' ? '了解更多' : 'Learn More';
+  
   return `
-  <article class="product-image-card" data-product-id="${product.productId}">
+  <article class="product-item-card" data-product-id="${product.productId}">
+    <div class="product-info">
+      <h3 class="product-name">${escapeHtml(productName)}</h3>
+      ${productDescription ? `<p class="product-description">${escapeHtml(productDescription)}</p>` : ''}
+      <a href="/products/${product.productId}?lang=${lang}" class="product-more-button">${escapeHtml(moreText)}</a>
+    </div>
+    <div class="product-images">
+      ${fourImagesHTML}
+    </div>
+  </article>
+  `;
+}
+
+/**
+ * 生成四图拼接的HTML
+ */
+function generateFourImagesHTML(product, images, productName, lang) {
+  return `
     <div class="four-image-collage">
       ${images.map((image, index) => {
-        const isMain = index === 0; // 第一个图片是主图
+        const isMain = index === 0;
         const colorName = image.colorName || '';
-        
-        // 修复：避免模板字符串嵌套，使用字符串连接
         const titleText = colorName ? productName + ' - ' + colorName : productName;
-        const altText = colorName ? productName + ' - ' + colorName : productName;
         
         return `
           <a 
@@ -601,7 +657,7 @@ function generateProductImagesHTML(product, lang = 'zh-CN') {
           >
             <img 
               src="${image.imageUrl}" 
-              alt="${altText}"
+              alt="${titleText}"
               loading="lazy"
               class="collage-image"
             />
@@ -609,7 +665,6 @@ function generateProductImagesHTML(product, lang = 'zh-CN') {
         `;
       }).join('')}
     </div>
-  </article>
   `;
 }
 
@@ -716,12 +771,21 @@ function getSkuColorPreview(product, sku) {
 }
 
 /**
- * 获取四图拼接的CSS样式
+ * HTML转义函数
  */
-function getProductImagesCSS() {
-  return `/* 四图拼接布局样式 - 每行一个卡片 */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
-/* 1. 产品网格容器 - 移除左右padding，保持上下padding */
+/**
+ * 获取产品卡片的CSS样式
+ */
+function getProductItemCSS() {
+  return `/* 产品卡片布局样式 - 全量描述优化版 */
+
+/* 1. 产品网格容器 */
 .products-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -729,219 +793,347 @@ function getProductImagesCSS() {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 0; /* 上下20px，左右0 */
+  padding: 20px 0;
   box-sizing: border-box;
 }
 
-/* 2. 图片卡片容器 - 增加圆角统一性 */
-.product-image-card {
+/* 2. 产品卡片容器 - 桌面端16:9比例，flex布局 */
+.product-item-card {
   width: 100%;
   aspect-ratio: 16/9;
-  border-radius: 20px; /* 增加圆角半径，使视觉更柔和 */
+  display: flex;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   background: white;
   position: relative;
 }
 
-.product-image-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+.product-item-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
-/* 3. 四图拼接网格 - 显著增加间距，统一圆角 */
+/* 3. 产品信息区域 - 占1/4宽度 */
+.product-info {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 4. 产品标题 - 修复兼容性，使用max-height替代-webkit-line-clamp */
+.product-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  max-height: 3.6em;
+  word-break: break-word;
+}
+
+/* 5. 产品描述 - 全量显示 */
+.product-description {
+  font-size: 1rem;
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  text-align: center;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+  display: block;
+  opacity: 0.9;
+  max-height: none;
+  word-break: break-word;
+}
+
+/* 6. 了解更多按钮 - 黑色简约设计 */
+.product-more-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  background: transparent;
+  color: #1a1a1a;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  border: 2px solid #1a1a1a;
+  text-align: center;
+  min-width: 140px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* 按钮悬停效果 - 黑色设计 */
+.product-more-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #1a1a1a;
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+
+.product-more-button:hover {
+  color: white;
+  border-color: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-more-button:hover::before {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.product-more-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 7. 图片区域 - 占3/4宽度 */
+.product-images {
+  flex: 12;
+  position: relative;
+  overflow: hidden;
+  background: white;
+}
+
+/* 8. 四图拼接网格 - 移除圆角，桌面端布局 */
 .four-image-collage {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 3fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
-  gap: 6px; /* 从3px增加到6px，显著增加间距 */
+  gap: 4px;
   background: white;
   position: relative;
-  border-radius: 20px; /* 与外部卡片圆角一致 */
-  overflow: hidden; /* 关键：确保内部元素遵守圆角 */
-  padding: 3px; /* 增加内部padding，为圆角留出空间 */
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* 4. 图片链接容器 - 统一圆角，确保放大时也保持圆角 */
+/* 9. 图片链接容器 - 移除圆角 */
 .collage-image-link {
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: block;
   text-decoration: none;
   background: #f8f9fa;
-  border-radius: 12px; /* 增加圆角半径 */
+  border-radius: 0;
   transform-origin: center;
-  border: 3px solid white; /* 使用边框创建间距，避免放大时重叠 */
-  box-sizing: border-box; /* 确保边框包含在尺寸内 */
+  cursor: pointer;
 }
 
-/* 5. 主图样式 - 统一圆角处理 */
+/* 10. 主图 */
 .collage-image-link.main { 
   grid-column: 1 / 2;
   grid-row: 1 / 4;
   z-index: 2;
-  border-radius: 12px 8px 8px 12px; /* 左圆右直，与边框结合 */
-  border-right: 6px solid white; /* 增加主图与右侧间距 */
+  border-radius: 0;
 }
 
-/* 6. 右侧小图 - 统一圆角处理 */
 .collage-image-link:nth-child(2) {
   grid-column: 2 / 3;
   grid-row: 1 / 2;
-  border-radius: 8px 12px 0 0;
-  border-bottom: 6px solid white; /* 增加间距 */
+  border-radius: 0;
 }
 
 .collage-image-link:nth-child(3) {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
   border-radius: 0;
-  border-top: 3px solid white; /* 上下边框减半 */
-  border-bottom: 3px solid white;
 }
 
 .collage-image-link:nth-child(4) {
   grid-column: 2 / 3;
   grid-row: 3 / 4;
-  border-radius: 0 0 12px 8px;
-  border-top: 6px solid white; /* 增加间距 */
+  border-radius: 0;
 }
 
-/* 7. 图片样式 - 确保图片本身也有圆角，且放大时保持 */
+/* 11. 图片样式 - 移除圆角，确保图片居中完整显示 */
 .collage-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border-radius: 8px; /* 图片圆角小于容器圆角 */
+  object-fit: contain;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
   display: block;
-  transform-origin: center; /* 确保从中心放大 */
+  transform-origin: center;
+  background-color: #f8f9fa;
 }
 
-/* 8. 优化悬停效果 - 确保放大时圆角统一 */
-.collage-image-link.main:hover {
+/* 12. 优化悬停效果 - 移除高亮效果，减小放大比例 */
+.collage-image-link:hover {
   transform: scale(1.02);
-  z-index: 20; /* 提高层级，避免被遮挡 */
-  box-shadow: 0 0 0 2px #3b82f6, 0 0 0 1px white;
-  border-radius: 14px 10px 10px 14px; /* 悬停时圆角微调 */
-}
-
-.collage-image-link:not(.main):hover {
   z-index: 20;
-  transform: scale(1.05);
-  box-shadow: 0 0 0 2px #3b82f6;
-  border-radius: 10px; /* 悬停时统一为圆角 */
 }
 
-/* 9. 图片放大效果 - 关键：确保放大时图片圆角也相应调整 */
 .collage-image-link:hover .collage-image {
-  transform: scale(1.15);
-  border-radius: 10px; /* 放大时增加圆角 */
+  transform: scale(1.05);
+  border-radius: 0;
 }
 
-/* 10. 针对直角放大问题的强制修复 */
-.collage-image-link,
-.collage-image-link *,
-.collage-image-link:hover,
-.collage-image-link:hover * {
-  border-radius: inherit !important; /* 强制继承圆角 */
-  overflow: hidden !important; /* 强制隐藏溢出 */
+/* 13. 完全移除悬停覆盖层 */
+.collage-image-link::after {
+  content: none;
 }
 
-/* 确保图片放大时不会突破圆角边界 */
-.collage-image-link {
-  isolation: isolate; /* 创建新的层叠上下文 */
-  contain: layout; /* 优化性能，避免布局溢出 */
-}
-
-.collage-image-link .collage-image {
-  will-change: transform; /* 提示浏览器优化transform */
-  backface-visibility: hidden; /* 修复某些浏览器渲染问题 */
-  -webkit-backface-visibility: hidden; /* Safari支持 */
-}
-
-/* 11. 移动端适配 */
+/* 14. 移动端优化 - 重新设计布局：四图在上，信息在下 */
 @media (max-width: 768px) {
   .products-grid {
-    padding: 10px 0; /* 移动端也移除左右padding */
+    padding: 10px 0;
     gap: 20px;
   }
   
-  .product-image-card {
-    aspect-ratio: 9/16;
-    border-radius: 16px;
+  .product-item-card {
+    aspect-ratio: auto;
+    min-height: 500px;
+    flex-direction: column;
+  }
+  
+  .product-item-card:hover {
+    transform: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+  
+  .product-images {
+    flex: none;
+    height: 280px;
+    order: 1;
+  }
+  
+  .product-info {
+    flex: none;
+    height: auto;
+    min-height: 220px;
+    order: 2;
+    padding: 20px 16px;
+    justify-content: flex-start;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  }
+  
+  .product-name {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    text-align: center;
+    overflow: hidden;
+    display: block;
+    max-height: 3.64em;
+    word-break: break-word;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: unset;
+    line-clamp: unset;
+  }
+  
+  .product-description {
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    line-height: 1.4;
+    overflow: visible;
+    white-space: normal;
+    max-height: 4.2em;
+    overflow-y: hidden;
+    word-break: break-word;
+  }
+  
+  .product-more-button {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    min-width: 120px;
   }
   
   .four-image-collage {
+    display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 2.5fr 1fr;
-    gap: 4px; /* 移动端间距稍小 */
-    border-radius: 16px;
-    padding: 2px;
+    grid-template-rows: 2fr 1fr;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
   }
   
   .collage-image-link.main {
     grid-column: 1 / 4;
     grid-row: 1 / 2;
-    border-radius: 12px 12px 0 0;
-    border-right: none;
-    border-bottom: 4px solid white;
+    border-radius: 0;
   }
   
   .collage-image-link:nth-child(2) {
     grid-column: 1 / 2;
     grid-row: 2 / 3;
-    border-radius: 0 0 0 12px;
-    border-bottom: none;
-    border-top: 4px solid white;
-    border-right: 2px solid white;
+    border-radius: 0;
   }
   
   .collage-image-link:nth-child(3) {
     grid-column: 2 / 3;
     grid-row: 2 / 3;
     border-radius: 0;
-    border: 2px solid white;
-    border-left: none;
-    border-right: none;
   }
   
   .collage-image-link:nth-child(4) {
     grid-column: 3 / 4;
     grid-row: 2 / 3;
-    border-radius: 0 0 12px 0;
-    border-top: 4px solid white;
-    border-left: 2px solid white;
+    border-radius: 0;
   }
   
-  /* 移动端悬停效果更克制 */
+  .collage-image-link {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .collage-image-link:nth-child(2),
+  .collage-image-link:nth-child(3),
+  .collage-image-link:nth-child(4) {
+    height: 100%;
+    min-height: 60px;
+  }
+  
+  .collage-image {
+    object-fit: contain;
+    background-color: #f8f9fa;
+  }
+  
+  .collage-image-link:not(.main) .collage-image {
+    object-fit: cover;
+  }
+  
   .collage-image-link:hover {
-    transform: scale(1.02);
+    transform: none;
   }
   
   .collage-image-link:hover .collage-image {
-    transform: scale(1.1);
+    transform: none;
   }
-}
-
-/* 12. 终极解决方案：使用clip-path确保圆角（备用） */
-/* 如果上述方案仍有直角问题，可以取消注释这部分 */
-/*
-.collage-image-link {
-  clip-path: inset(0 round 12px);
-}
-
-.collage-image-link.main {
-  clip-path: inset(0 round 12px 8px 8px 12px);
-}
-
-.collage-image-link:hover {
-  clip-path: inset(0 round 14px);
-}
-*/`;
+  
+  .collage-image-link:active {
+    transform: none;
+  }
+}`;
 }
