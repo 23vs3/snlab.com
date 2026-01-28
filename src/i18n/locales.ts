@@ -27,7 +27,7 @@ function generateProductTranslations(products: Product[], lang: Language): Recor
     
     // 添加通用翻译文本
     productTranslation.learnMore = lang === 'zh-CN' ? '了解更多信息' : 'Learn More';
-    productTranslation.experience = lang === 'zh-CN' ? '店内体验' : 'Store Experience';
+    productTranslation.shopNow = lang === 'zh-CN' ? '立即购买' : 'Shop Now';
     
     // 添加特性翻译（features）- 根据实际数据结构处理
     if (product.features && product.features.length > 0) {
@@ -186,6 +186,12 @@ const baseTranslations = {
       home: '首页',
       chinese: '中文',
       english: '英文'
+    },
+    product: {
+      detail: {
+        shopNow: '立即购买',
+        learnMore: '了解更多信息'
+      }
     }
   },
   'en': {
@@ -242,6 +248,12 @@ const baseTranslations = {
       home: 'Home',
       chinese: 'Chinese',
       english: 'English'
+    },
+    product: {
+      detail: {
+        shopNow: 'Shop Now',
+        learnMore: 'Learn More'
+      }
     }
   }
 };
