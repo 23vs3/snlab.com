@@ -211,6 +211,20 @@ export function renderProductDetail(productId: string | null): void {
     }
   }
 
+  // 图文详情：longImages 竖向无缝排列
+  const longImagesInner = document.getElementById('product-long-images-inner');
+  const longImagesSection = document.getElementById('product-long-images');
+  if (longImagesInner && longImagesSection) {
+    const longImages = product.longImages && Array.isArray(product.longImages) ? product.longImages : [];
+    if (longImages.length > 0) {
+      longImagesInner.innerHTML = longImages.map(src => `<img src="${src}" alt="" loading="lazy" />`).join('');
+      longImagesSection.style.display = '';
+    } else {
+      longImagesInner.innerHTML = '';
+      longImagesSection.style.display = 'none';
+    }
+  }
+
   // 图集上方“视频 / 图集 / 参数”切换
   if (tabsContainer) {
     const hasVideo = Array.isArray(product.videos) && product.videos.length > 0;
@@ -228,7 +242,6 @@ export function renderProductDetail(productId: string | null): void {
         productVideo.style.display = 'block';
         productVideo.play().catch(() => {});
       } else {
-        // 图集模式：显示图片和缩略图，隐藏视频
         if (productVideo) {
           productVideo.pause();
           productVideo.style.display = 'none';
@@ -236,9 +249,9 @@ export function renderProductDetail(productId: string | null): void {
         if (productImage) productImage.style.display = 'block';
         if (thumbsContainer) (thumbsContainer as HTMLElement).style.display = images.length > 1 ? 'flex' : 'none';
         if (mode === 'specs') {
-          const specsSection = document.querySelector('.specs') as HTMLElement | null;
-          if (specsSection) {
-            specsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const paramsSection = document.getElementById('product-params');
+          if (paramsSection) {
+            paramsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }
       }

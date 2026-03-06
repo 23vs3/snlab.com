@@ -330,9 +330,9 @@ products.forEach(product => {
           if (imgEl) imgEl.style.display = 'block';
           if (thumbsEl) thumbsEl.style.display = 'flex';
           if (mode === 'specs') {
-            var specsSection = document.querySelector('.specs');
-            if (specsSection && specsSection.scrollIntoView) {
-              specsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var paramsSection = document.getElementById('product-params');
+            if (paramsSection && paramsSection.scrollIntoView) {
+              paramsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
           }
         }
@@ -394,10 +394,24 @@ products.forEach(product => {
       if (brandEl && PRODUCT_DATA.brand) brandEl.textContent = PRODUCT_DATA.brand;
       renderSpecSelector(lang);
     }
+    function fillLongImages() {
+      var inner = document.getElementById('product-long-images-inner');
+      var section = document.getElementById('product-long-images');
+      if (!inner || !section) return;
+      var arr = Array.isArray(PRODUCT_DATA.longImages) ? PRODUCT_DATA.longImages : [];
+      if (arr.length) {
+        inner.innerHTML = arr.map(function(src) { return '<img src="' + src + '" alt="" loading="lazy" />'; }).join('');
+        section.style.display = '';
+      } else {
+        inner.innerHTML = '';
+        section.style.display = 'none';
+      }
+    }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function() {
         renderSpecSelector('zh-CN');
         initGalleryTabs();
+        fillLongImages();
         var thumbs = document.getElementById('product-gallery-thumbs');
         var mainImg = document.getElementById('product-image');
         var imgs = (PRODUCT_DATA.defaultSkuId && PRODUCT_DATA.skus) ? (function() {
@@ -418,6 +432,8 @@ products.forEach(product => {
       });
     } else {
       renderSpecSelector('zh-CN');
+      initGalleryTabs();
+      fillLongImages();
     }
     window.addEventListener('languageChanged', function(e) {
       var lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');

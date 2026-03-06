@@ -535,7 +535,11 @@ export const products: Product[] = [
       '/images/product_longImage1.png',
       '/images/product_longImage2.png',
       '/images/product_longImage3.png',
-      '/images/product_longImage4.png'
+      '/images/product_longImage4.png',
+      '/images/product_longImage5.png',
+      '/images/product_longImage6.png',
+      '/images/product_longImage7.png',
+      '/images/product_longImage8.png',
     ],
     videos: [
       '/images/product_video1.mp4',

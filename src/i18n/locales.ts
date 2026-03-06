@@ -192,7 +192,9 @@ const baseTranslations = {
         shopNow: '立即购买',
         learnMore: '了解更多信息',
         shopInfo: '店铺',
-        brand: '品牌'
+        brand: '品牌',
+        longImagesTitle: '图文详情',
+        specsTitle: '规格参数'
       }
     }
   },
@@ -256,7 +258,9 @@ const baseTranslations = {
         shopNow: 'Shop Now',
         learnMore: 'Learn More',
         shopInfo: 'Shop',
-        brand: 'Brand'
+        brand: 'Brand',
+        longImagesTitle: 'Product Details',
+        specsTitle: 'Specifications'
       }
     }
   }

@@ -247,14 +247,57 @@
     .breadcrumb a { opacity: 0.8; }
     .breadcrumb a:hover { opacity: 1; }
 
-    /* 产品展示区：桌面端左图右信息，移动端单列 */
+    /* 产品展示区：桌面端左右双栏独立滚动，移动端单列 */
     .product-hero {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;
       gap: var(--space-8);
-      align-items: start;
-      padding: var(--space-8) 0;
+      align-items: stretch;
+      padding: var(--space-4) 0;
+      height: calc(100vh - 140px);
+      max-height: calc(100vh - 140px);
       min-height: 0;
+      overflow: hidden;
+    }
+    .product-hero-left {
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+      padding-right: var(--space-2);
+    }
+    .product-hero-right {
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      padding-left: var(--space-2);
+    }
+    .product-detail-section-header {
+      margin: 0 0 var(--space-4);
+      font-size: 20px;
+    }
+    .product-long-images {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding-top: var(--space-4);
+    }
+    .product-long-images img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .product-params {
+      padding-top: var(--space-4);
+    }
+    .product-params .specs-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
     }
     .product-gallery {
       position: relative;
@@ -533,17 +576,35 @@
 
     @media (max-width: 680px) {
       .product-hero {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: unset;
+        grid-template-rows: unset;
         gap: var(--space-6);
-        order: 0;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+      }
+      .product-hero-left {
+        display: contents;
+        overflow: visible;
+        padding: 0;
+      }
+      .product-hero-right {
+        overflow: visible;
+        padding: 0;
       }
       .product-gallery { order: 1; }
-      .product-info { order: 2; }
+      .product-hero-right { order: 2; }
+      .product-long-images { order: 3; }
+      .product-params { order: 4; }
       .product-info h1 { font-size: 36px; }
-      .shop-info { order: 3; }
-      .product-detail { order: 4; }
       .features-grid { grid-template-columns: 1fr; }
       .specs-grid { grid-template-columns: 1fr; }
+      .product-params .specs-grid { grid-template-columns: 1fr; }
+      main { padding-bottom: var(--space-6); }
+      footer { margin-top: var(--space-6); }
       .footer-grid { grid-template-columns: repeat(2, 1fr); }
       .nav-bar > .nav-links { 
         display: none !important;
@@ -618,6 +679,26 @@
       }
     }
   </style>
+  <script>
+    (function() {
+      function routeHeroWheel(e) {
+        if (window.innerWidth <= 680) return;
+        var hero = document.getElementById('product-hero');
+        var left = document.getElementById('product-hero-left');
+        var right = document.getElementById('product-hero-right');
+        if (!hero || !left || !right) return;
+        var target = e.target;
+        var col = target.closest ? (target.closest('#product-hero-left') ? left : target.closest('#product-hero-right') ? right : null) : null;
+        if (!col) return;
+        var dy = e.deltaY;
+        var atTop = col.scrollTop <= 0;
+        var atBottom = col.scrollTop >= col.scrollHeight - col.clientHeight - 2;
+        if (dy > 0 && !atBottom) { e.preventDefault(); col.scrollTop += dy; }
+        else if (dy < 0 && !atTop) { e.preventDefault(); col.scrollTop += dy; }
+      }
+      document.addEventListener('wheel', routeHeroWheel, { passive: false });
+    })();
+  </script>
 </head>
 <body>
   <!-- 导航栏将通过 load-header.js 动态加载 -->
@@ -629,59 +710,51 @@
         <a href="/" data-i18n="common.home">首页</a> / <a href="/#products" data-i18n="nav.products">产品</a> / <span id="product-name">加载中...</span>
       </nav>
 
-      <section class="product-hero">
-        <div class="product-gallery">
-          <div class="product-gallery-tabs" id="product-gallery-tabs">
-            <!-- “视频 / 图集 / 参数” 由 JS 渲染 -->
+      <section class="product-hero" id="product-hero">
+        <div class="product-hero-left" id="product-hero-left">
+          <div class="product-gallery">
+            <div class="product-gallery-tabs" id="product-gallery-tabs">
+              <!-- “视频 / 图集 / 参数” 由 JS 渲染 -->
+            </div>
+            <div class="product-gallery-main">
+              <img src="" alt="产品图" id="product-image" />
+              <video id="product-video" class="product-video" playsinline controls></video>
+            </div>
+            <div class="product-gallery-thumbs" id="product-gallery-thumbs">
+              <!-- 缩略图由 JS 填充 -->
+            </div>
           </div>
-          <div class="product-gallery-main">
-            <img src="" alt="产品图" id="product-image" />
-            <video id="product-video" class="product-video" playsinline controls></video>
-          </div>
-          <div class="product-gallery-thumbs" id="product-gallery-thumbs">
-            <!-- 缩略图由 JS 填充 -->
-          </div>
+          <section class="product-long-images" id="product-long-images" aria-label="图文详情">
+            <h3 class="product-detail-section-header" data-i18n="product.detail.longImagesTitle">图文详情</h3>
+            <div class="product-long-images-inner" id="product-long-images-inner">
+              <!-- longImages 由 JS 竖向无缝排列 -->
+            </div>
+          </section>
+          <section class="product-params" id="product-params" aria-label="参数信息">
+            <div class="specs-grid" id="specs-grid">
+              <!-- 产品规格由 JavaScript 动态生成 -->
+            </div>
+          </section>
         </div>
-        <div class="product-info">
-          <h1 id="product-title">加载中...</h1>
-          <p class="product-tagline" id="product-tagline">加载中...</p>
-          <div class="product-price" id="product-price">加载中...</div>
-          <div class="product-specs-selector" id="product-specs-selector">
-            <!-- 规格选择器由 JS 根据 product.attributes 渲染 -->
-          </div>
-          <div class="product-actions">
-            <button class="btn btn-primary" onclick="window.open('https://m.tb.cn/h.7MsvUPtbmyZPwrF', '_blank')" data-i18n="product.detail.shopNow">立即购买</button>
-            <button class="btn" data-i18n="product.detail.learnMore">了解更多信息</button>
+        <div class="product-hero-right" id="product-hero-right">
+          <div class="product-info">
+            <h1 id="product-title">加载中...</h1>
+            <p class="product-tagline" id="product-tagline">加载中...</p>
+            <div class="product-price" id="product-price">加载中...</div>
+            <div class="product-specs-selector" id="product-specs-selector">
+              <!-- 规格选择器由 JS 根据 product.attributes 渲染 -->
+            </div>
+            <div class="product-actions">
+              <button class="btn btn-primary" onclick="window.open('https://m.tb.cn/h.7MsvUPtbmyZPwrF', '_blank')" data-i18n="product.detail.shopNow">立即购买</button>
+              <button class="btn" data-i18n="product.detail.learnMore">了解更多信息</button>
+            </div>
           </div>
         </div>
       </section>
 <!-- ??? -->
-    <!-- <section class="shop-info" id="shop-info">
-      <div class="container">
-        <div class="shop-info-inner">
-          <span class="shop-info-label" data-i18n="product.detail.shopInfo">店铺</span>
-          <a href="/#products" class="shop-brand" id="product-shop-brand">SNILAB</a>
-        </div>
-      </div>
-    </section> -->
-
-    <div class="product-detail">
-      <!-- <section class="features">
-        <div class="container">
-          <div class="features-grid" id="features-grid"> -->
-            <!-- 产品特性将通过 JavaScript 动态生成 -->
-          <!-- </div>
-        </div>
-      </section> -->
-
-      <section class="specs">
-        <div class="container">
-          <div class="specs-grid" id="specs-grid">
-            <!-- 产品规格将由 JavaScript 动态生成 -->
-          </div>
-        </div>
-      </section>
-    </div>
+    <!-- <div class="product-detail"> -->
+      <!-- 下方可放更多全局内容，左侧参数已移入 product-hero-left -->
+    <!-- </div> -->
   </main>
 
   <footer>
