@@ -503,8 +503,8 @@ export const products: Product[] = [
       'en': 'Wireless Bluetooth Speaker SNILAB-S'
     },
     description: {
-      'zh-CN': '专业级无线蓝牙音箱，360°环绕声，超长续航。采用先进的音频技术，提供卓越的音质体验。防水防尘设计，适合户外使用。',
-      'en': 'Professional-grade wireless Bluetooth speaker with 360° surround sound and long battery life. Advanced audio technology delivers exceptional sound quality. Water and dust resistant design, perfect for outdoor use.'
+      'zh-CN': '专业级无线蓝牙音箱，360°环绕声，约20小时超长续航。采用先进的音频技术，提供卓越的音质体验。IPX4防水设计，户外露营必备。',
+      'en': 'Professional-grade wireless Bluetooth speaker with 360° surround sound and 20 hours long battery life. Advanced audio technology delivers exceptional sound quality. IPX4 waterproof design, essential for outdoor camping.'
     },
     shortDescription: {
       'zh-CN': '高清音质，超长续航，防水设计',
@@ -530,6 +530,12 @@ export const products: Product[] = [
       '/images/product_defaultImage2.png',
       '/images/product_defaultImage3.png',
       '/images/product_defaultImage4.png'
+    ],
+    longImages: [
+      '/images/product_longImage1.png',
+      '/images/product_longImage2.png',
+      '/images/product_longImage3.png',
+      '/images/product_longImage4.png'
     ],
     videos: [
       '/images/product_video1.mp4',
@@ -962,8 +968,8 @@ export const products: Product[] = [
               'en': 'Waterproof Rating'
             },
             value: {
-              'zh-CN': 'IPX6',
-              'en': 'IPX6'
+              'zh-CN': 'IPX4',
+              'en': 'IPX4'
             }
           },
           {
