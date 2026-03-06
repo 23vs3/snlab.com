@@ -247,23 +247,84 @@
     .breadcrumb a { opacity: 0.8; }
     .breadcrumb a:hover { opacity: 1; }
 
-    /* 产品展示区 */
+    /* 产品展示区：桌面端左图右信息，移动端单列 */
     .product-hero {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--space-8);
-      align-items: center;
+      align-items: start;
       padding: var(--space-8) 0;
-      min-height: 70vh;
+      min-height: 0;
     }
-    .product-media {
+    .product-gallery {
       position: relative;
-      aspect-ratio: 4/4;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .product-gallery-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: var(--space-2);
+    }
+    .gallery-tab {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+      background: Canvas;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--muted);
+      transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    }
+    .gallery-tab.active {
+      border-color: CanvasText;
+      color: CanvasText;
+      background: color-mix(in srgb, CanvasText 6%, transparent);
+    }
+    .gallery-tab:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .product-gallery-main {
+      position: relative;
+      aspect-ratio: 1;
       border-radius: var(--radius);
       overflow: clip;
       background: #f8f9fa;
     }
-    .product-media img {
+    .product-gallery-main img,
+    .product-gallery-main video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .product-video {
+      display: none;
+    }
+    .product-gallery-thumbs {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .product-gallery-thumbs button {
+      width: 56px;
+      height: 56px;
+      padding: 0;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      overflow: clip;
+      background: #f0f0f0;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .product-gallery-thumbs button:hover,
+    .product-gallery-thumbs button.active {
+      border-color: CanvasText;
+    }
+    .product-gallery-thumbs button img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -277,13 +338,74 @@
     .product-tagline {
       font-size: 20px;
       color: var(--muted);
-      margin-bottom: var(--space-6);
+      margin-bottom: var(--space-4);
       line-height: 1.4;
     }
     .product-price {
       font-size: 24px;
       font-weight: 600;
+      margin-bottom: var(--space-4);
+    }
+    .product-specs-selector {
       margin-bottom: var(--space-6);
+    }
+    .product-specs-selector .spec-attr-label {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: var(--space-2);
+    }
+    .product-specs-selector .spec-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    .spec-option {
+      height: 100px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      padding: 0;
+      border: 2px solid color-mix(in srgb, CanvasText 25%, transparent);
+      border-radius: 8px;
+      background: Canvas;
+      cursor: pointer;
+      font-size: 14px;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      overflow: hidden;
+    }
+    .spec-option:hover {
+      border-color: color-mix(in srgb, CanvasText 50%, transparent);
+    }
+    .spec-option.active {
+      border-color: CanvasText;
+      background: color-mix(in srgb, CanvasText 8%, transparent);
+    }
+    .spec-option-thumb {
+      width: 100px;
+      height: 100px;
+      flex-shrink: 0;
+      border-radius: 6px 0 0 6px; /* 与按钮左侧圆角一致 */
+      overflow: hidden;
+      border-right: 1px solid color-mix(in srgb, CanvasText 15%, transparent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .spec-option-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .spec-option-thumb.is-color {
+      background: var(--muted, #eee);
+    }
+    .spec-option-label {
+      padding: 0 12px;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .spec-option:not(.spec-option--color) .spec-option-label {
+      padding: 0 14px;
     }
     .product-actions {
       display: flex;
@@ -310,6 +432,29 @@
     }
     .btn-primary:hover { filter: brightness(0.95); }
 
+    /* 店铺信息区 */
+    .shop-info {
+      padding: var(--space-4) 0;
+      border-top: var(--border);
+      border-bottom: var(--border);
+    }
+    .shop-info-inner {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .shop-info .shop-brand {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .shop-info .shop-brand a:hover {
+      opacity: 0.9;
+    }
+
+    /* 详情区：特性 + 规格参数 */
+    .product-detail {
+      padding: var(--space-8) 0 0;
+    }
     /* 产品特性 */
     .features {
       padding: var(--space-8) 0;
@@ -387,8 +532,16 @@
     .copyright { margin-top: var(--space-5); color: var(--muted); font-size: 13px; }
 
     @media (max-width: 680px) {
-      .product-hero { grid-template-columns: 1fr; gap: var(--space-6); }
+      .product-hero {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+        order: 0;
+      }
+      .product-gallery { order: 1; }
+      .product-info { order: 2; }
       .product-info h1 { font-size: 36px; }
+      .shop-info { order: 3; }
+      .product-detail { order: 4; }
       .features-grid { grid-template-columns: 1fr; }
       .specs-grid { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: repeat(2, 1fr); }
@@ -477,36 +630,58 @@
       </nav>
 
       <section class="product-hero">
-        <div class="product-media">
-          <img src="" alt="产品图" id="product-image" />
+        <div class="product-gallery">
+          <div class="product-gallery-tabs" id="product-gallery-tabs">
+            <!-- “视频 / 图集 / 参数” 由 JS 渲染 -->
+          </div>
+          <div class="product-gallery-main">
+            <img src="" alt="产品图" id="product-image" />
+            <video id="product-video" class="product-video" playsinline controls></video>
+          </div>
+          <div class="product-gallery-thumbs" id="product-gallery-thumbs">
+            <!-- 缩略图由 JS 填充 -->
+          </div>
         </div>
         <div class="product-info">
           <h1 id="product-title">加载中...</h1>
           <p class="product-tagline" id="product-tagline">加载中...</p>
           <div class="product-price" id="product-price">加载中...</div>
+          <div class="product-specs-selector" id="product-specs-selector">
+            <!-- 规格选择器由 JS 根据 product.attributes 渲染 -->
+          </div>
           <div class="product-actions">
             <button class="btn btn-primary" onclick="window.open('https://m.tb.cn/h.7MsvUPtbmyZPwrF', '_blank')" data-i18n="product.detail.shopNow">立即购买</button>
             <button class="btn" data-i18n="product.detail.learnMore">了解更多信息</button>
           </div>
         </div>
       </section>
+<!-- ??? -->
+    <!-- <section class="shop-info" id="shop-info">
+      <div class="container">
+        <div class="shop-info-inner">
+          <span class="shop-info-label" data-i18n="product.detail.shopInfo">店铺</span>
+          <a href="/#products" class="shop-brand" id="product-shop-brand">SNILAB</a>
+        </div>
+      </div>
+    </section> -->
+
+    <div class="product-detail">
+      <!-- <section class="features">
+        <div class="container">
+          <div class="features-grid" id="features-grid"> -->
+            <!-- 产品特性将通过 JavaScript 动态生成 -->
+          <!-- </div>
+        </div>
+      </section> -->
+
+      <section class="specs">
+        <div class="container">
+          <div class="specs-grid" id="specs-grid">
+            <!-- 产品规格将由 JavaScript 动态生成 -->
+          </div>
+        </div>
+      </section>
     </div>
-
-    <section class="features">
-      <div class="container">
-        <div class="features-grid" id="features-grid">
-          <!-- 产品特性将通过 JavaScript 动态生成 -->
-        </div>
-      </div>
-    </section>
-
-    <section class="specs">
-      <div class="container">
-        <div class="specs-grid" id="specs-grid">
-          <!-- 产品规格将通过 JavaScript 动态生成 -->
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer>

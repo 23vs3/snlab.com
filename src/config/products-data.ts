@@ -531,13 +531,16 @@ export const products: Product[] = [
       '/images/product_defaultImage3.png',
       '/images/product_defaultImage4.png'
     ],
+    videos: [
+      '/images/product_video1.mp4',
+    ],
     
     // 属性定义
     attributes: [
       {
         attribute: {
           attributeId: 'color',
-          attributeName: {
+          attributeName: {  
             'zh-CN': '颜色',
             'en': 'Color'
           },
@@ -603,7 +606,7 @@ export const products: Product[] = [
             displayOrder: 3
           },
           {
-            optionId: 'blue',
+            optionId: 'lake-blue',
             optionName: {
               'zh-CN': '湖蓝',
               'en': 'Lake Blue'

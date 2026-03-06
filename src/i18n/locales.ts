@@ -190,7 +190,9 @@ const baseTranslations = {
     product: {
       detail: {
         shopNow: '立即购买',
-        learnMore: '了解更多信息'
+        learnMore: '了解更多信息',
+        shopInfo: '店铺',
+        brand: '品牌'
       }
     }
   },
@@ -252,7 +254,9 @@ const baseTranslations = {
     product: {
       detail: {
         shopNow: 'Shop Now',
-        learnMore: 'Learn More'
+        learnMore: 'Learn More',
+        shopInfo: 'Shop',
+        brand: 'Brand'
       }
     }
   }

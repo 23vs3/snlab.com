@@ -153,6 +153,7 @@ export interface Product {
   priceDisplay: {[key: string]: string};
   mainImage?: string;
   defaultImages?: string[];
+  longImages?: string[];
   videos?: string[];
   attributes: AttributeSet[];
   skus: ProductSKU[];

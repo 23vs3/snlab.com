@@ -1,7 +1,10 @@
-import { ProductSpecs } from '@/types/index.js';
+import type { Product, ProductSKU, ProductSpecs } from '@/types/index.js';
 import { products } from '../config/products-data.js';
 import { i18n } from '../i18n/i18n.js';
 import type { Language } from '../i18n/locales.js';
+
+/** 按产品与属性维度的选中规格（productId -> attributeId -> optionId），用于切换规格时保持选中状态 */
+const selectedOptionsByProduct: Record<string, Record<string, string>> = {};
 
 /**
  * 从 URL 路径获取 productId
@@ -38,6 +41,42 @@ export function getProductIdFromUrl(): string | null {
   }
 
   return null;
+}
+
+/**
+ * 根据当前选中的属性选项或 defaultSkuId 解析出当前 SKU
+ */
+function getSelectedSku(
+  product: Product,
+  selectedOverrides?: Record<string, string>
+): ProductSKU | null {
+  if (!product.skus?.length) return null;
+  const attrMap = selectedOverrides ?? (selectedOptionsByProduct[product.productId] ?? {});
+
+  // 若没有选中覆盖，先用 defaultSkuId
+  if (Object.keys(attrMap).length === 0 && product.defaultSkuId) {
+    const defaultSku = product.skus.find(s => s.skuId === product.defaultSkuId);
+    if (defaultSku) return defaultSku;
+  }
+
+  // 根据 attributes 的 selectedOptionId 构建选中映射（用于初始化）
+  if (Object.keys(attrMap).length === 0 && product.attributes?.length) {
+    for (const set of product.attributes) {
+      const opt = set.selectedOptionId ?? set.options?.[0]?.optionId;
+      if (set.attribute?.attributeId && opt) {
+        attrMap[set.attribute.attributeId] = opt;
+      }
+    }
+  }
+
+  const match = product.skus.find(sku => {
+    const skuAttrs = sku.attributes || {};
+    for (const [attrId, optionId] of Object.entries(attrMap)) {
+      if (skuAttrs[attrId] !== optionId) return false;
+    }
+    return true;
+  });
+  return match ?? null;
 }
 
 export function renderProductDetail(productId: string | null): void {
@@ -112,41 +151,204 @@ export function renderProductDetail(productId: string | null): void {
     }
   }
 
-  // 更新产品图片
-  const productImage = document.getElementById('product-image') as HTMLImageElement;
+  // 初始化选中规格：若尚未有记录则从 defaultSkuId 对应 SKU 反推
+  if (!selectedOptionsByProduct[product.productId] && product.defaultSkuId && product.skus?.length) {
+    const defaultSku = product.skus.find(s => s.skuId === product.defaultSkuId);
+    if (defaultSku?.attributes) {
+      selectedOptionsByProduct[product.productId] = { ...defaultSku.attributes };
+    }
+  }
+
+  const selectedSku = getSelectedSku(product);
+  const images = selectedSku?.images?.length
+    ? selectedSku.images
+    : product.defaultImages?.length
+      ? product.defaultImages
+      : product.mainImage
+        ? [product.mainImage]
+        : [];
+
+  const productImage = document.getElementById('product-image') as HTMLImageElement | null;
+  const productVideo = document.getElementById('product-video') as HTMLVideoElement | null;
+  const thumbsContainer = document.getElementById('product-gallery-thumbs');
+  const tabsContainer = document.getElementById('product-gallery-tabs');
+
   if (productImage) {
-    productImage.src = product.mainImage || '';
+    productImage.src = images[0] || '';
     productImage.alt = product.name[currentLang];
-    console.log('[renderProductDetail] Updated product-image:', product.mainImage);
-  } else {
-    console.warn('[renderProductDetail] product-image element not found');
+    productImage.style.display = 'block';
+  }
+  if (productVideo) {
+    const hasVideo = Array.isArray(product.videos) && product.videos.length > 0;
+    if (hasVideo) {
+      productVideo.src = product.videos![0];
+      productVideo.style.display = 'none'; // 默认显示图集
+      productVideo.pause();
+    } else {
+      productVideo.removeAttribute('src');
+      productVideo.style.display = 'none';
+    }
+  }
+
+  if (thumbsContainer) {
+    if (images.length <= 1) {
+      thumbsContainer.innerHTML = '';
+    } else {
+      thumbsContainer.innerHTML = images.map((src, i) => `
+        <button type="button" class="${i === 0 ? 'active' : ''}" data-index="${i}" aria-label="缩略图 ${i + 1}">
+          <img src="${src}" alt="" />
+        </button>
+      `).join('');
+      thumbsContainer.querySelectorAll('button').forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+          if (!productImage) return;
+          if (images[i]) {
+            productImage.src = images[i];
+            thumbsContainer.querySelectorAll('button').forEach((b, j) => b.classList.toggle('active', j === i));
+          }
+        });
+      });
+    }
+  }
+
+  // 图集上方“视频 / 图集 / 参数”切换
+  if (tabsContainer) {
+    const hasVideo = Array.isArray(product.videos) && product.videos.length > 0;
+    tabsContainer.innerHTML = `
+      <button type="button" class="gallery-tab" data-mode="video" ${hasVideo ? '' : 'disabled'}>视频</button>
+      <button type="button" class="gallery-tab active" data-mode="images">图集</button>
+      <button type="button" class="gallery-tab" data-mode="specs">参数</button>
+    `;
+
+    const updateMode = (mode: 'video' | 'images' | 'specs') => {
+      if (mode === 'video') {
+        if (!hasVideo || !productVideo) return;
+        if (productImage) productImage.style.display = 'none';
+        if (thumbsContainer) (thumbsContainer as HTMLElement).style.display = 'none';
+        productVideo.style.display = 'block';
+        productVideo.play().catch(() => {});
+      } else {
+        // 图集模式：显示图片和缩略图，隐藏视频
+        if (productVideo) {
+          productVideo.pause();
+          productVideo.style.display = 'none';
+        }
+        if (productImage) productImage.style.display = 'block';
+        if (thumbsContainer) (thumbsContainer as HTMLElement).style.display = images.length > 1 ? 'flex' : 'none';
+        if (mode === 'specs') {
+          const specsSection = document.querySelector('.specs') as HTMLElement | null;
+          if (specsSection) {
+            specsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+      tabsContainer.querySelectorAll<HTMLButtonElement>('.gallery-tab').forEach(btn => {
+        const btnMode = btn.dataset.mode as 'video' | 'images' | 'specs' | undefined;
+        btn.classList.toggle('active', btnMode === mode);
+      });
+    };
+
+    tabsContainer.querySelectorAll<HTMLButtonElement>('.gallery-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode as 'video' | 'images' | 'specs' | undefined;
+        if (!mode || btn.disabled) return;
+        updateMode(mode);
+      });
+    });
   }
 
   // 更新产品信息
   const productTitle = document.getElementById('product-title');
   const productTagline = document.getElementById('product-tagline');
-  const productPrice = document.getElementById('product-price');
-  
-  if (productTitle) {
-    productTitle.textContent = product.name[currentLang];
-    console.log('[renderProductDetail] Updated product-title:', product.name[currentLang]);
-  } else {
-    console.warn('[renderProductDetail] product-title element not found');
+  const productPriceEl = document.getElementById('product-price');
+
+  if (productTitle) productTitle.textContent = product.name[currentLang];
+  if (productTagline && product.tagline) productTagline.textContent = product.tagline[currentLang];
+
+  if (productPriceEl) {
+    if (selectedSku != null) {
+      productPriceEl.textContent = `¥${selectedSku.price}`;
+    } else if (product.priceDisplay?.[currentLang]) {
+      productPriceEl.textContent = product.priceDisplay[currentLang];
+    } else {
+      productPriceEl.textContent = product.basePrice != null ? `¥${product.basePrice}` : '';
+    }
   }
-  
-  if (productTagline && product.tagline) {
-    productTagline.textContent = product.tagline[currentLang];
-    console.log('[renderProductDetail] Updated product-tagline:', product.tagline[currentLang]);
-  } else {
-    console.warn('[renderProductDetail] product-tagline element not found');
+
+  // 规格选择器
+  const specsSelectorEl = document.getElementById('product-specs-selector');
+  if (specsSelectorEl && product.attributes?.length) {
+    const currentSelected = selectedOptionsByProduct[product.productId] ?? {};
+    let html = '';
+    for (const attrSet of product.attributes) {
+      const attr = attrSet.attribute;
+      const attrId = attr.attributeId;
+      const label = attr.attributeName?.[currentLang] ?? attrId;
+      const help = attr.helpText?.[currentLang];
+      const selectedId = currentSelected[attrId] ?? attrSet.selectedOptionId ?? attrSet.options?.[0]?.optionId;
+      html += `<div class="spec-attr-label">${label}${help ? ` · ${help}` : ''}</div>`;
+      html += '<div class="spec-options">';
+      for (const opt of attrSet.options || []) {
+        const isActive = opt.optionId === selectedId;
+        const name = opt.optionName?.[currentLang] ?? opt.optionId;
+        if (attr.type === 'color') {
+          const thumb = opt.previewImage
+            ? `<span class="spec-option-thumb"><img src="${opt.previewImage}" alt="" /></span>`
+            : `<span class="spec-option-thumb is-color" style="background:${opt.value || '#ccc'}"></span>`;
+          html += `<button type="button" class="spec-option spec-option--color ${isActive ? 'active' : ''}" data-attr-id="${attrId}" data-option-id="${opt.optionId}">${thumb}<span class="spec-option-label">${name}</span></button>`;
+        } else {
+          html += `<button type="button" class="spec-option ${isActive ? 'active' : ''}" data-attr-id="${attrId}" data-option-id="${opt.optionId}"><span class="spec-option-label">${name}</span></button>`;
+        }
+      }
+      html += '</div>';
+    }
+    specsSelectorEl.innerHTML = html;
+    specsSelectorEl.querySelectorAll('.spec-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const attrId = (btn as HTMLElement).dataset.attrId;
+        const optionId = (btn as HTMLElement).dataset.optionId;
+        if (!attrId || !optionId) return;
+        if (!selectedOptionsByProduct[product.productId]) selectedOptionsByProduct[product.productId] = {};
+        selectedOptionsByProduct[product.productId][attrId] = optionId;
+        const nextSku = getSelectedSku(product);
+        const nextImages = nextSku?.images?.length ? nextSku.images : product.defaultImages || (product.mainImage ? [product.mainImage] : []);
+        const mainImg = document.getElementById('product-image') as HTMLImageElement;
+        if (mainImg && nextImages[0]) mainImg.src = nextImages[0];
+        const priceEl = document.getElementById('product-price');
+        if (priceEl) priceEl.textContent = nextSku != null ? `¥${nextSku.price}` : (product.priceDisplay?.[currentLang] ?? '');
+        const thumbs = document.getElementById('product-gallery-thumbs');
+        if (thumbs && nextImages.length > 1) {
+          thumbs.innerHTML = nextImages.map((src, i) => `
+            <button type="button" class="${i === 0 ? 'active' : ''}" data-index="${i}">
+              <img src="${src}" alt="" />
+            </button>
+          `).join('');
+          thumbs.querySelectorAll('button').forEach((b, i) => {
+            b.addEventListener('click', () => {
+              if (mainImg && nextImages[i]) mainImg.src = nextImages[i];
+              thumbs.querySelectorAll('button').forEach((x, j) => x.classList.toggle('active', j === i));
+            });
+          });
+        }
+        specsSelectorEl.querySelectorAll('.spec-option').forEach(b => {
+          const a = (b as HTMLElement).dataset.attrId;
+          const o = (b as HTMLElement).dataset.optionId;
+          b.classList.toggle('active', a === attrId && o === optionId);
+        });
+      });
+    });
+  } else if (specsSelectorEl) {
+    specsSelectorEl.innerHTML = '';
   }
-  
-  if (productPrice && product.priceDisplay) {
-    productPrice.textContent = product.priceDisplay[currentLang];
-    console.log('[renderProductDetail] Updated product-price:', product.priceDisplay[currentLang]);
-  } else {
-    console.warn('[renderProductDetail] product-price element not found');
-  }
+
+  /// 店铺信息区 ???
+  // const shopBrandEl = document.getElementById('product-shop-brand');
+  // if (shopBrandEl && product.brand) {
+  //   shopBrandEl.textContent = product.brand;
+  //   if (shopBrandEl.tagName === 'A') {
+  //     (shopBrandEl as HTMLAnchorElement).href = '/#products';
+  //   }
+  // }
 
   // 更新产品特性
   const featuresGrid = document.getElementById('features-grid');

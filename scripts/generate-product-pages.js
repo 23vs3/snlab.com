@@ -116,52 +116,66 @@ products.forEach(product => {
     }
   }
   
-  // 如果无法从构建文件获取，使用硬编码的基本数据
+  // 如果无法从构建文件获取，使用硬编码的基本数据（含 attributes/skus 以支持规格选择）
   if (!productDataJson) {
     const fallbackProducts = {
       'snilab-s': {
         productId: 'snilab-s',
         name: { 'zh-CN': '无线蓝牙音箱 SNILAB-S', 'en': 'Wireless Bluetooth Speaker SNILAB-S' },
         tagline: { 'zh-CN': '重新定义便携音乐体验', 'en': 'Redefine portable music experience' },
-        basePrice: { 'zh-CN': '¥599', 'en': '¥599' },
-        mainImage: '/images/product_mainImage.png'
+        priceDisplay: { 'zh-CN': '¥599', 'en': '¥599' },
+        mainImage: '/images/product_mainImage.png',
+        defaultImages: ['/images/product_defaultImage1.png', '/images/product_defaultImage2.png'],
+        brand: 'SNILAB',
+        defaultSkuId: 'SNILAB-S-ORANGE',
+        attributes: [],
+        skus: [
+          { skuId: 'SNILAB-S-ORANGE', attributes: { color: 'orange' }, price: 599, images: ['/images/product_skuOrangeImage1.png'] }
+        ]
       },
     };
     productDataJson = fallbackProducts[product.productId] || fallbackProducts['snilab-s'];
   }
-  
-  // 修改模板，直接替换占位符文本为实际产品数据（服务端渲染）
-  let modifiedTemplate = template;
-  
-  // 获取默认语言
+
   const defaultLang = 'zh-CN';
-  
-  // 直接替换 HTML 中的占位符
+  const defaultSku = productDataJson.skus?.length && productDataJson.defaultSkuId
+    ? productDataJson.skus.find(s => s.skuId === productDataJson.defaultSkuId)
+    : productDataJson.skus?.[0];
+  const firstImage = defaultSku?.images?.[0] || productDataJson.defaultImages?.[0] || productDataJson.mainImage || '';
+  const firstPrice = defaultSku != null ? ('¥' + defaultSku.price) : (productDataJson.priceDisplay?.[defaultLang] || (productDataJson.basePrice != null ? '¥' + productDataJson.basePrice : ''));
+
+  let modifiedTemplate = template;
   modifiedTemplate = modifiedTemplate.replace(
     /<span id="product-name">加载中\.\.\.<\/span>/,
-    `<span id="product-name">${productDataJson.name[defaultLang]}</span>`
+    `<span id="product-name">${(productDataJson.name && productDataJson.name[defaultLang]) || ''}</span>`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<h1 id="product-title">加载中\.\.\.<\/h1>/,
-    `<h1 id="product-title">${productDataJson.name[defaultLang]}</h1>`
+    `<h1 id="product-title">${(productDataJson.name && productDataJson.name[defaultLang]) || ''}</h1>`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<p class="product-tagline" id="product-tagline">加载中\.\.\.<\/p>/,
-    `<p class="product-tagline" id="product-tagline">${productDataJson.tagline[defaultLang]}</p>`
+    `<p class="product-tagline" id="product-tagline">${(productDataJson.tagline && productDataJson.tagline[defaultLang]) || ''}</p>`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<div class="product-price" id="product-price">加载中\.\.\.<\/div>/,
-    `<div class="product-price" id="product-price">${productDataJson.basePrice[defaultLang]}</div>`
+    `<div class="product-price" id="product-price">${firstPrice}</div>`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<img src="" alt="产品图" id="product-image" \/>/,
-    `<img src="${productDataJson.mainImage}" alt="${productDataJson.name[defaultLang]}" id="product-image" />`
+    `<img src="${firstImage}" alt="${(productDataJson.name && productDataJson.name[defaultLang]) || '产品图'}" id="product-image" />`
   );
   modifiedTemplate = modifiedTemplate.replace(
     /<title>.*?<\/title>/,
-    `<title>${productDataJson.name[defaultLang]} - SNILAB</title>`
+    `<title>${(productDataJson.name && productDataJson.name[defaultLang]) || 'Product'} - SNILAB</title>`
   );
-  
+  if (productDataJson.brand) {
+    modifiedTemplate = modifiedTemplate.replace(
+      /<a href="\/#products" class="shop-brand" id="product-shop-brand">SNILAB<\/a>/,
+      '<a href="/#products" class="shop-brand" id="product-shop-brand">' + productDataJson.brand + '</a>'
+    );
+  }
+
   // 内联产品特性（features）
   if (productDataJson.features && Array.isArray(productDataJson.features)) {
     const featuresHtml = productDataJson.features.map(feature => {
@@ -183,145 +197,233 @@ products.forEach(product => {
     );
   }
   
-  // 内联产品规格（specs）
+  // 内联产品规格（specs）- 支持多规格组
   if (productDataJson.specs) {
+    const specGroups = ['audio', 'physical', 'technical', 'specifications'];
     let specsHtml = '';
-    
-    // 音频规格
-    if (productDataJson.specs.audio && productDataJson.specs.audio.items) {
-      const audioLabel = productDataJson.specs.audio.label[defaultLang] || productDataJson.specs.audio.label || '音频';
-      const audioItems = productDataJson.specs.audio.items.map(item => {
-        const name = item.name[defaultLang] || item.name || '';
-        const value = item.value[defaultLang] || item.value || '';
-        return `
-            <li>
-              <span class="spec-label">${name}</span>
-              <span class="spec-value">${value}</span>
-            </li>
-          `;
+    for (const groupKey of specGroups) {
+      const group = productDataJson.specs[groupKey];
+      if (!group?.label?.[defaultLang] || !Array.isArray(group.items) || group.items.length === 0) continue;
+      const label = group.label[defaultLang] || group.label['zh-CN'] || groupKey;
+      const items = group.items.map(item => {
+        const name = item.name?.[defaultLang] || item.name?.['zh-CN'] || '';
+        const value = item.value?.[defaultLang] || item.value?.['zh-CN'] || '';
+        return '<li><span class="spec-label">' + name + '</span><span class="spec-value">' + value + '</span></li>';
       }).join('');
-      
-      specsHtml += `
-        <div class="spec-group">
-          <h3>${audioLabel}</h3>
-          <ul class="spec-list">
-            ${audioItems}
-          </ul>
-        </div>
-      `;
+      specsHtml += '<div class="spec-group ' + groupKey + '-specs"><h3>' + label + '</h3><ul class="spec-list">' + items + '</ul></div>';
     }
-    
-    // 物理规格
-    if (productDataJson.specs.physical && productDataJson.specs.physical.items) {
-      const physicalLabel = productDataJson.specs.physical.label[defaultLang] || productDataJson.specs.physical.label || '物理';
-      const physicalItems = productDataJson.specs.physical.items.map(item => {
-        const name = item.name[defaultLang] || item.name || '';
-        const value = item.value[defaultLang] || item.value || '';
-        return `
-            <li>
-              <span class="spec-label">${name}</span>
-              <span class="spec-value">${value}</span>
-            </li>
-          `;
-      }).join('');
-      
-      specsHtml += `
-        <div class="spec-group">
-          <h3>${physicalLabel}</h3>
-          <ul class="spec-list">
-            ${physicalItems}
-          </ul>
-        </div>
-      `;
-    }
-    
     if (specsHtml) {
       modifiedTemplate = modifiedTemplate.replace(
         /<div class="specs-grid" id="specs-grid">[\s\S]*?<\/div>/,
-        `<div class="specs-grid" id="specs-grid">${specsHtml}</div>`
+        '<div class="specs-grid" id="specs-grid">' + specsHtml + '</div>'
       );
     }
   }
   
-  // 添加一个简单的内联脚本，用于语言切换和完整数据加载（可选）
+  const productDataStr = JSON.stringify(productDataJson).replace(/<\/script>/gi, '<\\/script>');
   const inlineScript = `
   <script>
-    // 内联产品数据（用于语言切换和完整功能）
-    const PRODUCT_DATA = ${JSON.stringify(productDataJson)};
-    
-    // 如果 ES 模块加载成功，使用完整功能；否则仅使用内联数据
+    var PRODUCT_DATA = ${productDataStr};
+    var selectedOptions = {};
+    if (PRODUCT_DATA.defaultSkuId && PRODUCT_DATA.skus && PRODUCT_DATA.skus.length) {
+      var defaultSku = PRODUCT_DATA.skus.find(function(s) { return s.skuId === PRODUCT_DATA.defaultSkuId; });
+      if (defaultSku && defaultSku.attributes) selectedOptions = Object.assign({}, defaultSku.attributes);
+    }
+    function getSelectedSku(data, attrMap) {
+      if (!data.skus || !data.skus.length) return null;
+      var map = attrMap || selectedOptions;
+      if (Object.keys(map).length === 0 && data.defaultSkuId) {
+        var ds = data.skus.find(function(s) { return s.skuId === data.defaultSkuId; });
+        if (ds) return ds;
+      }
+      return data.skus.find(function(sku) {
+        var attrs = sku.attributes || {};
+        for (var k in map) if (attrs[k] !== map[k]) return false;
+        return true;
+      }) || null;
+    }
+    function renderSpecSelector(lang) {
+      var el = document.getElementById('product-specs-selector');
+      if (!el || !PRODUCT_DATA.attributes || !PRODUCT_DATA.attributes.length) return;
+      var html = '';
+      PRODUCT_DATA.attributes.forEach(function(attrSet) {
+        var attr = attrSet.attribute;
+        var attrId = attr.attributeId;
+        var label = (attr.attributeName && attr.attributeName[lang]) || attrId;
+        var help = attr.helpText && attr.helpText[lang];
+        var selectedId = selectedOptions[attrId] || attrSet.selectedOptionId || (attrSet.options && attrSet.options[0] && attrSet.options[0].optionId);
+        html += '<div class="spec-attr-label">' + label + (help ? ' · ' + help : '') + '</div><div class="spec-options">';
+        (attrSet.options || []).forEach(function(opt) {
+          var active = opt.optionId === selectedId;
+          var name = (opt.optionName && opt.optionName[lang]) || opt.optionId;
+          if (attr.type === 'color') {
+            var thumb = opt.previewImage ? '<span class="spec-option-thumb"><img src="' + opt.previewImage + '" alt="" /></span>' : '<span class="spec-option-thumb is-color" style="background:' + (opt.value || '#ccc') + '"></span>';
+            html += '<button type="button" class="spec-option spec-option--color' + (active ? ' active' : '') + '" data-attr-id="' + attrId + '" data-option-id="' + opt.optionId + '">' + thumb + '<span class="spec-option-label">' + name + '</span></button>';
+          } else {
+            html += '<button type="button" class="spec-option' + (active ? ' active' : '') + '" data-attr-id="' + attrId + '" data-option-id="' + opt.optionId + '"><span class="spec-option-label">' + name + '</span></button>';
+          }
+        });
+        html += '</div>';
+      });
+      el.innerHTML = html;
+      el.querySelectorAll('.spec-option').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var attrId = btn.getAttribute('data-attr-id');
+          var optionId = btn.getAttribute('data-option-id');
+          if (!attrId || !optionId) return;
+          selectedOptions[attrId] = optionId;
+          var sku = getSelectedSku(PRODUCT_DATA);
+          var imgs = (sku && sku.images && sku.images.length) ? sku.images : (PRODUCT_DATA.defaultImages || (PRODUCT_DATA.mainImage ? [PRODUCT_DATA.mainImage] : []));
+          var mainImg = document.getElementById('product-image');
+          if (mainImg && imgs[0]) mainImg.src = imgs[0];
+          var priceEl = document.getElementById('product-price');
+          if (priceEl) priceEl.textContent = sku ? '¥' + sku.price : (PRODUCT_DATA.priceDisplay && PRODUCT_DATA.priceDisplay[document.documentElement.lang === 'en' ? 'en' : 'zh-CN']) || '';
+          var thumbs = document.getElementById('product-gallery-thumbs');
+          if (thumbs && imgs.length > 1) {
+            thumbs.innerHTML = imgs.map(function(src, i) {
+              return '<button type="button" class="' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"><img src="' + src + '" alt="" /></button>';
+            }).join('');
+            thumbs.querySelectorAll('button').forEach(function(b, i) {
+              b.addEventListener('click', function() {
+                if (mainImg && imgs[i]) mainImg.src = imgs[i];
+                thumbs.querySelectorAll('button').forEach(function(x, j) { x.classList.toggle('active', j === i); });
+              });
+            });
+          }
+          el.querySelectorAll('.spec-option').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-attr-id') === attrId && b.getAttribute('data-option-id') === optionId);
+          });
+        });
+      });
+    }
+    function initGalleryTabs() {
+      var imgEl = document.getElementById('product-image');
+      var videoEl = document.getElementById('product-video');
+      var thumbsEl = document.getElementById('product-gallery-thumbs');
+      var tabsEl = document.getElementById('product-gallery-tabs');
+      if (!tabsEl) return;
+      var hasVideo = Array.isArray(PRODUCT_DATA.videos) && PRODUCT_DATA.videos.length > 0;
+      if (videoEl) {
+        if (hasVideo) {
+          videoEl.src = PRODUCT_DATA.videos[0];
+          videoEl.style.display = 'none';
+        } else {
+          videoEl.removeAttribute('src');
+          videoEl.style.display = 'none';
+        }
+      }
+      tabsEl.innerHTML = ''
+        + '<button type="button" class="gallery-tab" data-mode="video"' + (hasVideo ? '' : ' disabled') + '>视频</button>'
+        + '<button type="button" class="gallery-tab active" data-mode="images">图集</button>'
+        + '<button type="button" class="gallery-tab" data-mode="specs">参数</button>';
+      function setMode(mode) {
+        if (mode === 'video') {
+          if (!hasVideo || !videoEl) return;
+          if (imgEl) imgEl.style.display = 'block'; // 保证布局稳定，视频覆盖在上
+          if (thumbsEl) thumbsEl.style.display = 'none';
+          videoEl.style.display = 'block';
+        } else {
+          if (videoEl) {
+            videoEl.pause && videoEl.pause();
+            videoEl.style.display = 'none';
+          }
+          if (imgEl) imgEl.style.display = 'block';
+          if (thumbsEl) thumbsEl.style.display = 'flex';
+          if (mode === 'specs') {
+            var specsSection = document.querySelector('.specs');
+            if (specsSection && specsSection.scrollIntoView) {
+              specsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }
+        tabsEl.querySelectorAll('.gallery-tab').forEach(function(btn) {
+          var m = btn.getAttribute('data-mode');
+          btn.classList.toggle('active', m === mode);
+        });
+      }
+      tabsEl.querySelectorAll('.gallery-tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var mode = btn.getAttribute('data-mode');
+          if (!mode || btn.disabled) return;
+          setMode(mode);
+        });
+      });
+    }
     function updateLanguage(lang) {
       if (!PRODUCT_DATA) return;
-      const elements = [
-        { id: 'product-title', key: 'name' },
-        { id: 'product-tagline', key: 'tagline' },
-        { id: 'product-price', key: 'basePrice' },
-        { id: 'product-name', key: 'name' }
-      ];
-      elements.forEach(function(item) {
-        const el = document.getElementById(item.id);
-        if (el && PRODUCT_DATA[item.key] && PRODUCT_DATA[item.key][lang]) {
-          el.textContent = PRODUCT_DATA[item.key][lang];
+      var name = (PRODUCT_DATA.name && PRODUCT_DATA.name[lang]) || (PRODUCT_DATA.name && PRODUCT_DATA.name['zh-CN']) || '';
+      var tagline = (PRODUCT_DATA.tagline && PRODUCT_DATA.tagline[lang]) || (PRODUCT_DATA.tagline && PRODUCT_DATA.tagline['zh-CN']) || '';
+      var elTitle = document.getElementById('product-title');
+      var elTagline = document.getElementById('product-tagline');
+      var elName = document.getElementById('product-name');
+      var elPrice = document.getElementById('product-price');
+      if (elTitle) elTitle.textContent = name;
+      if (elTagline) elTagline.textContent = tagline;
+      if (elName) elName.textContent = name;
+      var sku = getSelectedSku(PRODUCT_DATA);
+      if (elPrice) elPrice.textContent = sku ? '¥' + sku.price : (PRODUCT_DATA.priceDisplay && PRODUCT_DATA.priceDisplay[lang]) || '';
+      if (name) document.title = name + ' - SNILAB';
+      if (PRODUCT_DATA.features && Array.isArray(PRODUCT_DATA.features)) {
+        var fg = document.getElementById('features-grid');
+        if (fg) fg.innerHTML = PRODUCT_DATA.features.map(function(f) {
+          var icon = f.icon || '✨';
+          var t = (f.title && f.title[lang]) || (f.title && f.title['zh-CN']) || '';
+          var d = (f.description && f.description[lang]) || (f.description && f.description['zh-CN']) || '';
+          return '<div class="feature-card"><div class="feature-icon">' + icon + '</div><h3>' + t + '</h3><p>' + d + '</p></div>';
+        }).join('');
+      }
+      if (PRODUCT_DATA.specs) {
+        var sg = document.getElementById('specs-grid');
+        if (sg) {
+          var groups = ['audio','physical','technical','specifications'];
+          var out = '';
+          groups.forEach(function(gk) {
+            var g = PRODUCT_DATA.specs[gk];
+            if (!g || !g.label || !g.items || !g.items.length) return;
+            var lbl = (g.label[lang] || g.label['zh-CN']) || gk;
+            out += '<div class="spec-group ' + gk + '-specs"><h3>' + lbl + '</h3><ul class="spec-list">' + g.items.map(function(it) {
+              var n = (it.name && it.name[lang]) || (it.name && it.name['zh-CN']) || '';
+              var v = (it.value && it.value[lang]) || (it.value && it.value['zh-CN']) || '';
+              return '<li><span class="spec-label">' + n + '</span><span class="spec-value">' + v + '</span></li>';
+            }).join('') + '</ul></div>';
+          });
+          if (out) sg.innerHTML = out;
+        }
+      }
+      var brandEl = document.getElementById('product-shop-brand');
+      if (brandEl && PRODUCT_DATA.brand) brandEl.textContent = PRODUCT_DATA.brand;
+      renderSpecSelector(lang);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        renderSpecSelector('zh-CN');
+        initGalleryTabs();
+        var thumbs = document.getElementById('product-gallery-thumbs');
+        var mainImg = document.getElementById('product-image');
+        var imgs = (PRODUCT_DATA.defaultSkuId && PRODUCT_DATA.skus) ? (function() {
+          var s = PRODUCT_DATA.skus.find(function(x) { return x.skuId === PRODUCT_DATA.defaultSkuId; });
+          return (s && s.images) ? s.images : (PRODUCT_DATA.defaultImages || []);
+        })() : (PRODUCT_DATA.defaultImages || []);
+        if (thumbs && mainImg && imgs.length > 1) {
+          thumbs.innerHTML = imgs.map(function(src, i) {
+            return '<button type="button" class="' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"><img src="' + src + '" alt="" /></button>';
+          }).join('');
+          thumbs.querySelectorAll('button').forEach(function(b, i) {
+            b.addEventListener('click', function() {
+              if (mainImg && imgs[i]) mainImg.src = imgs[i];
+              thumbs.querySelectorAll('button').forEach(function(x, j) { x.classList.toggle('active', j === i); });
+            });
+          });
         }
       });
-      if (PRODUCT_DATA.name && PRODUCT_DATA.name[lang]) {
-        document.title = PRODUCT_DATA.name[lang] + ' - SNILAB';
-      }
-      
-      // 更新特性（features）
-      if (PRODUCT_DATA.features && Array.isArray(PRODUCT_DATA.features)) {
-        const featuresGrid = document.getElementById('features-grid');
-        if (featuresGrid) {
-          featuresGrid.innerHTML = PRODUCT_DATA.features.map(function(feature) {
-            const icon = feature.icon || '✨';
-            const title = feature.title[lang] || feature.title || '';
-            const description = feature.description[lang] || feature.description || '';
-            return '<div class="feature-card"><div class="feature-icon">' + icon + '</div><h3>' + title + '</h3><p>' + description + '</p></div>';
-          }).join('');
-        }
-      }
-      
-      // 更新规格（specs）
-      if (PRODUCT_DATA.specs) {
-        const specsGrid = document.getElementById('specs-grid');
-        if (specsGrid) {
-          let specsHtml = '';
-          
-          // 音频规格
-          if (PRODUCT_DATA.specs.audio && PRODUCT_DATA.specs.audio.items) {
-            const audioLabel = PRODUCT_DATA.specs.audio.label[lang] || PRODUCT_DATA.specs.audio.label || '音频';
-            const audioItems = PRODUCT_DATA.specs.audio.items.map(function(item) {
-              const name = item.name[lang] || item.name || '';
-              const value = item.value[lang] || item.value || '';
-              return '<li><span class="spec-label">' + name + '</span><span class="spec-value">' + value + '</span></li>';
-            }).join('');
-            specsHtml += '<div class="spec-group"><h3>' + audioLabel + '</h3><ul class="spec-list">' + audioItems + '</ul></div>';
-          }
-          
-          // 物理规格
-          if (PRODUCT_DATA.specs.physical && PRODUCT_DATA.specs.physical.items) {
-            const physicalLabel = PRODUCT_DATA.specs.physical.label[lang] || PRODUCT_DATA.specs.physical.label || '物理';
-            const physicalItems = PRODUCT_DATA.specs.physical.items.map(function(item) {
-              const name = item.name[lang] || item.name || '';
-              const value = item.value[lang] || item.value || '';
-              return '<li><span class="spec-label">' + name + '</span><span class="spec-value">' + value + '</span></li>';
-            }).join('');
-            specsHtml += '<div class="spec-group"><h3>' + physicalLabel + '</h3><ul class="spec-list">' + physicalItems + '</ul></div>';
-          }
-          
-          if (specsHtml) {
-            specsGrid.innerHTML = specsHtml;
-          }
-        }
-      }
+    } else {
+      renderSpecSelector('zh-CN');
     }
-    
-    // 监听语言变化事件（如果 ES 模块加载成功，会被触发）
     window.addEventListener('languageChanged', function(e) {
-      const lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');
+      var lang = (e.detail && e.detail.lang) || (localStorage.getItem('language') || 'zh-CN');
       updateLanguage(lang);
     });
-  </script>`;
+  <\/script>`;
   
   // 移除生产环境的 Vite 客户端脚本（开发环境专用）
   modifiedTemplate = modifiedTemplate.replace(/<script\s+type\s*=\s*["']module["'][^>]*src\s*=\s*["']\/@vite\/client["'][^>]*><\/script>\s*/gi, '');
