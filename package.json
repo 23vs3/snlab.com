@@ -7,7 +7,7 @@
     "dev": "vite & sleep 3 && open http://localhost:3001/qr-display.html",
     "dev:qr": "vite && open http://localhost:3001/qr-display.html",
     "build": "tsc && vite build && npm run postbuild",
-    "postbuild": "node scripts/remove-client-script.js && node scripts/generate-index.js && node scripts/generate-product-pages.js && node scripts/generate-warranty-page.js",
+    "postbuild": "node scripts/remove-client-script.js && node scripts/generate-images.js && node scripts/generate-index.js && node scripts/generate-product-pages.js && node scripts/generate-warranty-page.js",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "create-page": "node scripts/create-page.js"
@@ -16,9 +16,9 @@
     "@types/node": "^20.0.0",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.0.0",
     "vite": "^5.0.0"
   },
   "type": "module"
 }
-

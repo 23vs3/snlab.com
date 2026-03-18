@@ -12,6 +12,60 @@ const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 const indexTemplatePath = path.join(distDir, 'index.html');
 
+function responsivePictureHTMLForBuild({ src, alt = '', className = '', sizes = '100vw', loading = 'lazy', fetchpriority = 'low' }) {
+  /**
+   * Build-time responsive <picture> generator for *inlined* homepage HTML.
+   *
+   * Why it's duplicated (instead of importing `src/utils/media.ts`):
+   * - This file runs in Node during postbuild (no bundling, no Vite aliasing).
+   * - We need deterministic HTML in dist/index.html without requiring JS runtime.
+   *
+   * IMPORTANT:
+   * - Must stay in sync with:
+   *   - `scripts/generate-images.js` output layout
+   *   - `src/utils/media.ts` runtime mapping (for non-inlined rendering paths)
+   */
+  const normalize = (s) => {
+    if (!s) return s;
+    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:')) return s;
+    return s.startsWith('/') ? s : `/${s}`;
+  };
+  const escapeAttr = (s) =>
+    String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  const src0 = normalize(src);
+  if (!src0.startsWith('/images/')) {
+    return `<img src="${escapeAttr(src0)}" alt="${escapeAttr(alt)}" class="${escapeAttr(className)}" loading="${loading}" decoding="async" fetchpriority="${fetchpriority}" />`;
+  }
+  const m = src0.match(/^\/images\/(.*)\/([^\/]+?)(\.[a-zA-Z0-9]+)$/) || src0.match(/^\/images\/([^\/]+?)(\.[a-zA-Z0-9]+)$/);
+  let dirPart = '';
+  let name = '';
+  if (m && m.length >= 3) {
+    if (m.length === 4) {
+      dirPart = m[1] ? `${m[1].replace(/\/+$/g, '')}/` : '';
+      name = m[2];
+    } else {
+      dirPart = '';
+      name = m[1];
+    }
+  }
+  if (!name) {
+    return `<img src="${escapeAttr(src0)}" alt="${escapeAttr(alt)}" class="${escapeAttr(className)}" loading="${loading}" decoding="async" fetchpriority="${fetchpriority}" />`;
+  }
+  const widths = [160, 240, 320, 640, 960, 1280, 1600];
+  const mk = (fmt) => widths.map(w => `/images-gen/${dirPart}${name}-w${w}.${fmt} ${w}w`).join(', ');
+  return [
+    `<picture>`,
+    `  <source type="image/avif" srcset="${escapeAttr(mk('avif'))}" sizes="${escapeAttr(sizes)}" />`,
+    `  <source type="image/webp" srcset="${escapeAttr(mk('webp'))}" sizes="${escapeAttr(sizes)}" />`,
+    `  <img src="${escapeAttr(src0)}" alt="${escapeAttr(alt)}" class="${escapeAttr(className)}" loading="${loading}" decoding="async" fetchpriority="${fetchpriority}" />`,
+    `</picture>`
+  ].join('\\n');
+}
+
 // 读取产品数据（从构建后的 JS 文件或从源代码读取）
 let products = [];
 
@@ -373,12 +427,14 @@ function generateFourImagesHTML(product, images, productName, lang) {
             data-sku-id="${image.skuId}"
             data-color-name="${colorName}"
           >
-            <img 
-              src="${image.imageUrl}" 
-              alt="${titleText}"
-              loading="lazy"
-              class="collage-image"
-            />
+            ${responsivePictureHTMLForBuild({
+              src: image.imageUrl,
+              alt: titleText,
+              className: 'collage-image',
+              sizes: '(max-width: 768px) 100vw, 75vw',
+              loading: 'lazy',
+              fetchpriority: 'low'
+            })}
           </a>
         `;
       }).join('')}

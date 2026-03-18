@@ -1,5 +1,6 @@
 import { Product } from "@/types";
 import { ProductDisplayUtils } from './products-utils.ts';
+import { responsivePictureHTML } from './media.ts';
 
 export type Language = 'zh-CN' | 'en';
 
@@ -80,12 +81,17 @@ function generateFourImagesHTML(
             data-sku-id="${image.skuId}"
             data-color-name="${escapeHtml(colorName)}"
           >
-            <img 
-              src="${escapeHtml(image.imageUrl)}" 
-              alt="${escapeHtml(titleText)}"
-              loading="lazy"
-              class="collage-image"
-            />
+            ${responsivePictureHTML({
+              src: String(image.imageUrl || ''),
+              alt: titleText,
+              className: 'collage-image',
+              // 列表拼图：桌面端卡片内图像区域约占 75% 宽；移动端主图接近全宽
+              sizes: '(max-width: 768px) 100vw, 75vw',
+              loading: 'lazy',
+              decoding: 'async',
+              // 列表中图片数量密集，全部保持 low，避免挤占首屏 LCP（轮播/主图）带宽
+              fetchPriority: 'low'
+            })}
           </a>
         `;
       }).join('')}

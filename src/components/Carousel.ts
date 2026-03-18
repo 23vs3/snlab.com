@@ -1,4 +1,5 @@
 import type { CarouselConfig, CarouselState, PointerEventHandler, MediaEventHandler, SlideItem } from '../types/index.js';
+import { createResponsivePictureElement } from '../utils/media.js';
 
 export class Carousel {
   private carousel: HTMLElement;
@@ -73,20 +74,39 @@ export class Carousel {
       slideDiv.className = 'slide';
 
       if (item.type === 'image') {
-        const img = document.createElement('img');
-        img.src = item.src;
-        img.alt = item.alt || '';
+        /**
+         * 轮播图优化目标：
+         * - 首张图通常是首页 LCP 候选，因此设为 eager + high，尽快出图。
+         * - 其余 slide 设为 lazy + low，避免抢占首屏带宽。
+         * - 使用 <picture> + srcset，让移动端不再下载桌面大图（不改变 CSS 布局）。
+         */
+        const mediaEl = createResponsivePictureElement({
+          src: item.src,
+          alt: item.alt || '',
+          className: '',
+          // 轮播通常占满容器
+          sizes: '100vw',
+          loading: index === 0 ? 'eager' : 'lazy',
+          decoding: 'async',
+          fetchPriority: index === 0 ? 'high' : 'low'
+        });
+        const img =
+          mediaEl instanceof HTMLImageElement
+            ? mediaEl
+            : (mediaEl.querySelector('img') as HTMLImageElement | null);
         
         // 添加图片加载错误处理
-        img.addEventListener('error', (e) => {
+        img?.addEventListener('error', (e) => {
           console.error(`轮播图图片加载失败 [${index}]:`, item.src, e);
           // 可选：显示占位符或错误提示
-          img.style.backgroundColor = '#000';
-          img.style.display = 'flex';
-          img.style.alignItems = 'center';
-          img.style.justifyContent = 'center';
-          img.style.color = '#fff';
-          img.style.fontSize = '14px';
+          if (img) {
+            img.style.backgroundColor = '#000';
+            img.style.display = 'flex';
+            img.style.alignItems = 'center';
+            img.style.justifyContent = 'center';
+            img.style.color = '#fff';
+            img.style.fontSize = '14px';
+          }
           // 创建一个错误提示元素
           const errorText = document.createElement('span');
           errorText.textContent = '图片加载失败';
@@ -98,12 +118,12 @@ export class Carousel {
         
         // 添加图片加载成功日志（仅在开发环境）
         if (import.meta.env.DEV) {
-          img.addEventListener('load', () => {
+          img?.addEventListener('load', () => {
             console.log(`轮播图图片加载成功 [${index}]:`, item.src);
           });
         }
         
-        slideDiv.appendChild(img);
+        slideDiv.appendChild(mediaEl);
       } else if (item.type === 'video') {
         const video = document.createElement('video');
         video.src = item.src;

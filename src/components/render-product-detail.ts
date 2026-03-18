@@ -2,6 +2,7 @@ import type { Product, ProductSKU, ProductSpecs } from '@/types/index.js';
 import { products } from '../config/products-data.js';
 import { i18n } from '../i18n/i18n.js';
 import type { Language } from '../i18n/locales.js';
+import { responsivePictureHTML } from '../utils/media.js';
 
 /** 按产品与属性维度的选中规格（productId -> attributeId -> optionId），用于切换规格时保持选中状态 */
 const selectedOptionsByProduct: Record<string, Record<string, string>> = {};
@@ -174,18 +175,35 @@ export function renderProductDetail(productId: string | null): void {
   const tabsContainer = document.getElementById('product-gallery-tabs');
 
   if (productImage) {
+    /**
+     * 主图属于“首屏关键资源”（LCP 候选）。
+     * - 保持 <img> 结构不变，避免影响布局/CSS 选择器。
+     * - 用 eager + high 优先级让浏览器更早调度下载与解码，缩短首屏空白。
+     */
     productImage.src = images[0] || '';
     productImage.alt = product.name[currentLang];
     productImage.style.display = 'block';
+    productImage.loading = 'eager';
+    productImage.decoding = 'async';
+    (productImage as any).fetchPriority = 'high';
   }
   if (productVideo) {
     const hasVideo = Array.isArray(product.videos) && product.videos.length > 0;
     if (hasVideo) {
-      productVideo.src = product.videos![0];
+      /**
+       * 视频必须延迟加载：
+       * - 以前即使 `display:none`，设置了 `video.src` 仍可能触发网络请求，抢占首屏带宽。
+       * - 现在把真实 URL 存在 data 属性里，只有切到“视频”tab 才挂载 src 并 load/play。
+       * - `preload="none"` 确保浏览器不做额外预取（兼容移动端流量控制）。
+       */
+      productVideo.removeAttribute('src');
+      (productVideo as any).dataset.src = product.videos![0];
+      productVideo.preload = 'none';
       productVideo.style.display = 'none'; // 默认显示图集
       productVideo.pause();
     } else {
       productVideo.removeAttribute('src');
+      delete (productVideo as any).dataset.src;
       productVideo.style.display = 'none';
     }
   }
@@ -194,9 +212,24 @@ export function renderProductDetail(productId: string | null): void {
     if (images.length <= 1) {
       thumbsContainer.innerHTML = '';
     } else {
+      /**
+       * 缩略图策略：
+       * - 使用响应式 <picture>，只下发 160/240/320 等小图，避免下载原始大图。
+       * - lazy + async decode + low 优先级，避免影响主图与首屏内容。
+       * - 注意：这里返回的是 HTML 字符串，事件绑定仍在 button 上，不影响交互。
+       */
       thumbsContainer.innerHTML = images.map((src, i) => `
         <button type="button" class="${i === 0 ? 'active' : ''}" data-index="${i}" aria-label="缩略图 ${i + 1}">
-          <img src="${src}" alt="" />
+          ${responsivePictureHTML({
+            src,
+            alt: '',
+            className: '',
+            sizes: '80px',
+            widths: [160, 240, 320],
+            loading: 'lazy',
+            decoding: 'async',
+            fetchPriority: 'low'
+          })}
         </button>
       `).join('');
       thumbsContainer.querySelectorAll('button').forEach((btn, i) => {
@@ -217,8 +250,28 @@ export function renderProductDetail(productId: string | null): void {
   if (longImagesInner && longImagesSection) {
     const longImages = product.longImages && Array.isArray(product.longImages) ? product.longImages : [];
     if (longImages.length > 0) {
-      longImagesInner.innerHTML = longImages.map(src => `<img src="${src}" alt="" loading="lazy" />`).join('');
+      /**
+       * 长图策略（关键性能点）：
+       * - 不能一次性把所有长图 src 写进 DOM，否则移动端会出现并发下载/解码拥塞，滚动掉帧。
+       * - 先渲染“占位 img”（tiny data URI），把真实 URL 放进 data-src。
+       * - 使用 IntersectionObserver 提前 rootMargin 观察，分批（并发≤3）把 data-src 升级为 src。
+       * - `content-visibility` + `contain-intrinsic-size` 用于减少首屏布局/绘制成本，并降低 CLS 风险。
+       */
+      const tiny = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+      longImagesInner.innerHTML = longImages.map((src, idx) => `
+        <img
+          src="${tiny}"
+          data-src="${src}"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          fetchpriority="low"
+          style="content-visibility:auto;contain-intrinsic-size: 1000px 1400px;"
+          data-long-index="${idx}"
+        />
+      `).join('');
       longImagesSection.style.display = '';
+      setupLazyUpgradeImages(longImagesInner);
     } else {
       longImagesInner.innerHTML = '';
       longImagesSection.style.display = 'none';
@@ -240,6 +293,12 @@ export function renderProductDetail(productId: string | null): void {
         if (productImage) productImage.style.display = 'none';
         if (thumbsContainer) (thumbsContainer as HTMLElement).style.display = 'none';
         productVideo.style.display = 'block';
+        // 真正切到视频 tab 时才挂载 src（避免首屏偷跑下载）
+        const lazySrc = (productVideo as any).dataset?.src as string | undefined;
+        if (!productVideo.src && lazySrc) {
+          productVideo.src = lazySrc;
+          productVideo.load();
+        }
         productVideo.play().catch(() => {});
       } else {
         if (productVideo) {
@@ -306,7 +365,16 @@ export function renderProductDetail(productId: string | null): void {
         const name = opt.optionName?.[currentLang] ?? opt.optionId;
         if (attr.type === 'color') {
           const thumb = opt.previewImage
-            ? `<span class="spec-option-thumb"><img src="${opt.previewImage}" alt="" /></span>`
+            ? `<span class="spec-option-thumb">${responsivePictureHTML({
+                src: opt.previewImage,
+                alt: '',
+                className: '',
+                sizes: '100px',
+                widths: [160, 240, 320],
+                loading: 'lazy',
+                decoding: 'async',
+                fetchPriority: 'low'
+              })}</span>`
             : `<span class="spec-option-thumb is-color" style="background:${opt.value || '#ccc'}"></span>`;
           html += `<button type="button" class="spec-option spec-option--color ${isActive ? 'active' : ''}" data-attr-id="${attrId}" data-option-id="${opt.optionId}">${thumb}<span class="spec-option-label">${name}</span></button>`;
         } else {
@@ -333,7 +401,16 @@ export function renderProductDetail(productId: string | null): void {
         if (thumbs && nextImages.length > 1) {
           thumbs.innerHTML = nextImages.map((src, i) => `
             <button type="button" class="${i === 0 ? 'active' : ''}" data-index="${i}">
-              <img src="${src}" alt="" />
+              ${responsivePictureHTML({
+                src,
+                alt: '',
+                className: '',
+                sizes: '80px',
+                widths: [160, 240, 320],
+                loading: 'lazy',
+                decoding: 'async',
+                fetchPriority: 'low'
+              })}
             </button>
           `).join('');
           thumbs.querySelectorAll('button').forEach((b, i) => {
@@ -437,6 +514,78 @@ function renderSpecGroup(specs: ProductSpecs | undefined, groupKey: string, curr
       <ul class="spec-list">${items}</ul>
     </div>
   `;
+}
+
+function setupLazyUpgradeImages(container: HTMLElement): void {
+  const imgs = Array.from(container.querySelectorAll<HTMLImageElement>('img[data-src]'));
+  if (imgs.length === 0) return;
+
+  /**
+   * IntersectionObserver root 选择：
+   * - 桌面端详情页左侧是独立滚动容器（`#product-hero-left`），IO 必须以它为 root 才能正确触发。
+   * - 移动端是页面整体滚动，因此 root 使用 viewport（null）。
+   */
+  const desktopRoot = window.innerWidth > 680 ? document.getElementById('product-hero-left') : null;
+  const root = desktopRoot || null;
+
+  const pending = new Set<HTMLImageElement>();
+  let inflight = 0;
+  const maxConcurrent = 3;
+
+  // 简单并发泵：避免一次性触发大量图片网络与解码任务
+  const pump = () => {
+    if (inflight >= maxConcurrent) return;
+    const next = pending.values().next().value as HTMLImageElement | undefined;
+    if (!next) return;
+    pending.delete(next);
+    inflight++;
+    const real = next.dataset.src;
+    if (real) {
+      next.src = real;
+      next.removeAttribute('data-src');
+    }
+    const done = () => {
+      inflight = Math.max(0, inflight - 1);
+      next.removeEventListener('load', done);
+      next.removeEventListener('error', done);
+      pump();
+    };
+    next.addEventListener('load', done, { once: true });
+    next.addEventListener('error', done, { once: true });
+    // Keep pipeline moving.
+    pump();
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    // Fallback: just load all (still lazy by browser).
+    imgs.forEach(img => {
+      const real = img.dataset.src;
+      if (real) {
+        img.src = real;
+        img.removeAttribute('data-src');
+      }
+    });
+    return;
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const ent of entries) {
+        if (!ent.isIntersecting) continue;
+        const img = ent.target as HTMLImageElement;
+        io.unobserve(img);
+        pending.add(img);
+      }
+      pump();
+    },
+    {
+      root,
+      rootMargin: '800px 0px',
+      threshold: 0.01
+    }
+  );
+
+  imgs.forEach(img => io.observe(img));
 }
 
 // 更新产品规格
