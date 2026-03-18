@@ -1,4 +1,3 @@
-// src/utils/product-card-template.ts
 import { Product } from "@/types";
 import { ProductDisplayUtils } from './products-utils.ts';
 

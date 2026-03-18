@@ -22,21 +22,6 @@ export interface CarouselState {
   deltaX: number;
 }
 
-// 产品相关类型
-// export interface Product {
-//   id: string;
-//   name: string;
-//   description: string;
-//   price: string;
-//   image: string;
-//   features: string[];
-//   specs: ProductSpec[];
-// }
-
-// export interface ProductSpec {
-//   label: string;
-//   value: string;
-// }
 export interface ProductAttribute {
   attributeId: string;
   attributeName: {[key: string]: string};
