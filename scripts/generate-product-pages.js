@@ -229,6 +229,15 @@ products.forEach(product => {
       var defaultSku = PRODUCT_DATA.skus.find(function(s) { return s.skuId === PRODUCT_DATA.defaultSkuId; });
       if (defaultSku && defaultSku.attributes) selectedOptions = Object.assign({}, defaultSku.attributes);
     }
+    // 若 URL 指定了 sku，则以该 sku 的 attributes 覆盖选中规格（用于从首页图片跳转）
+    try {
+      var urlParams = new URLSearchParams(window.location.search);
+      var urlSku = urlParams.get('sku');
+      if (urlSku && PRODUCT_DATA.skus && PRODUCT_DATA.skus.length) {
+        var urlSkuObj = PRODUCT_DATA.skus.find(function(s) { return s.skuId === urlSku; });
+        if (urlSkuObj && urlSkuObj.attributes) selectedOptions = Object.assign({}, urlSkuObj.attributes);
+      }
+    } catch (e) {}
     function getSelectedSku(data, attrMap) {
       if (!data.skus || !data.skus.length) return null;
       var map = attrMap || selectedOptions;
@@ -414,10 +423,11 @@ products.forEach(product => {
         fillLongImages();
         var thumbs = document.getElementById('product-gallery-thumbs');
         var mainImg = document.getElementById('product-image');
-        var imgs = (PRODUCT_DATA.defaultSkuId && PRODUCT_DATA.skus) ? (function() {
-          var s = PRODUCT_DATA.skus.find(function(x) { return x.skuId === PRODUCT_DATA.defaultSkuId; });
-          return (s && s.images) ? s.images : (PRODUCT_DATA.defaultImages || []);
-        })() : (PRODUCT_DATA.defaultImages || []);
+        var currentSku = getSelectedSku(PRODUCT_DATA);
+        var imgs = (currentSku && currentSku.images && currentSku.images.length)
+          ? currentSku.images
+          : (PRODUCT_DATA.defaultImages || []);
+        if (mainImg && imgs[0]) mainImg.src = imgs[0];
         if (thumbs && mainImg && imgs.length > 1) {
           thumbs.innerHTML = imgs.map(function(src, i) {
             return '<button type="button" class="' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"><img src="' + src + '" alt="" /></button>';

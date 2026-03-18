@@ -45,6 +45,19 @@ export function getProductIdFromUrl(): string | null {
 }
 
 /**
+ * 从 URL 查询参数获取 skuId（首页列表图片链接会带 ?sku=...）
+ */
+function getSkuIdFromUrl(): string | null {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sku = urlParams.get('sku');
+    return sku ? sku : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 根据当前选中的属性选项或 defaultSkuId 解析出当前 SKU
  */
 function getSelectedSku(
@@ -149,6 +162,15 @@ export function renderProductDetail(productId: string | null): void {
       if (!productsLink.hasAttribute('data-i18n')) {
         productsLink.setAttribute('data-i18n', 'nav.products');
       }
+    }
+  }
+
+  // 若 URL 指定了 sku，则以该 sku 的 attributes 作为选中规格（用于从首页图片跳转）
+  const skuIdFromUrl = getSkuIdFromUrl();
+  if (skuIdFromUrl && product.skus?.length) {
+    const sku = product.skus.find(s => s.skuId === skuIdFromUrl);
+    if (sku?.attributes && Object.keys(sku.attributes).length > 0) {
+      selectedOptionsByProduct[product.productId] = { ...sku.attributes };
     }
   }
 
