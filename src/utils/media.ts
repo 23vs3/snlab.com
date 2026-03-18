@@ -143,8 +143,15 @@ export function responsivePictureHTML(opts: ResponsiveImageOptions): string {
 
   return [
     `<picture>`,
-    `  <source type="image/avif" srcset="${escapeAttr(avifSrcset)}" sizes="${escapeAttr(sizes)}" />`,
+    /**
+     * Source 顺序很关键：
+     * - 在部分地区/网络环境下，AVIF 资源可能出现缓存命中率偏低或解码不稳定的情况
+     *   （你描述的“内地慢、VPN快”属于常见表现）。
+     * - 优先声明 WebP，让浏览器优先选 WebP（两者都存在且都由构建期生成），
+     *   在兼容性与体验上更稳。
+     */
     `  <source type="image/webp" srcset="${escapeAttr(webpSrcset)}" sizes="${escapeAttr(sizes)}" />`,
+    `  <source type="image/avif" srcset="${escapeAttr(avifSrcset)}" sizes="${escapeAttr(sizes)}" />`,
     `  <img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" class="${escapeAttr(className)}" loading="${loading}" decoding="${decoding}" fetchpriority="${fetchpriority}"${wh} />`,
     `</picture>`
   ].join('\n');
@@ -194,15 +201,6 @@ export function createResponsivePictureElement(opts: ResponsiveImageOptions): HT
 
   const isLocal = src.startsWith('/images/');
   if (isLocal) {
-    const avif = document.createElement('source');
-    avif.type = 'image/avif';
-    const avifSrcset = buildSrcset(src, widths, 'avif');
-    if (avifSrcset) {
-      avif.srcset = avifSrcset;
-      avif.sizes = sizes;
-      wrapper.appendChild(avif);
-    }
-
     const webp = document.createElement('source');
     webp.type = 'image/webp';
     const webpSrcset = buildSrcset(src, widths, 'webp');
@@ -210,6 +208,15 @@ export function createResponsivePictureElement(opts: ResponsiveImageOptions): HT
       webp.srcset = webpSrcset;
       webp.sizes = sizes;
       wrapper.appendChild(webp);
+    }
+
+    const avif = document.createElement('source');
+    avif.type = 'image/avif';
+    const avifSrcset = buildSrcset(src, widths, 'avif');
+    if (avifSrcset) {
+      avif.srcset = avifSrcset;
+      avif.sizes = sizes;
+      wrapper.appendChild(avif);
     }
   }
 

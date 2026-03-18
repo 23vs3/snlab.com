@@ -85,8 +85,13 @@ function generateFourImagesHTML(
               src: String(image.imageUrl || ''),
               alt: titleText,
               className: 'collage-image',
-              // 列表拼图：桌面端卡片内图像区域约占 75% 宽；移动端主图接近全宽
-              sizes: '(max-width: 768px) 100vw, 75vw',
+              /**
+               * sizes 决定 srcset 会选多大尺寸的图片：
+               * - 你的卡片本质上是 1/3 宽（4/12 列），如果写成 75vw 会明显高估，
+               *   导致桌面端下载过大的变体（在慢网下体验更差）。
+               * - 移动端仍使用 100vw。
+               */
+              sizes: '(max-width: 768px) 100vw, 33vw',
               loading: 'lazy',
               decoding: 'async',
               // 列表中图片数量密集，全部保持 low，避免挤占首屏 LCP（轮播/主图）带宽

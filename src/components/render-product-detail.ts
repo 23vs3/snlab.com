@@ -552,7 +552,9 @@ function setupLazyUpgradeImages(container: HTMLElement): void {
 
   const pending = new Set<HTMLImageElement>();
   let inflight = 0;
-  const maxConcurrent = 3;
+  // 慢网（例如部分地区跨境）下并发过高会导致“看起来整体很慢”。
+  // 这里降低并发 + 收紧 rootMargin，让图片更接近“进入可视区后再下载”。
+  const maxConcurrent = 2;
 
   // 简单并发泵：避免一次性触发大量图片网络与解码任务
   const pump = () => {
@@ -602,7 +604,7 @@ function setupLazyUpgradeImages(container: HTMLElement): void {
     },
     {
       root,
-      rootMargin: '800px 0px',
+      rootMargin: '420px 0px',
       threshold: 0.01
     }
   );

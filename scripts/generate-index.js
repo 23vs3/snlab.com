@@ -59,8 +59,12 @@ function responsivePictureHTMLForBuild({ src, alt = '', className = '', sizes = 
   const mk = (fmt) => widths.map(w => `/images-gen/${dirPart}${name}-w${w}.${fmt} ${w}w`).join(', ');
   return [
     `<picture>`,
-    `  <source type="image/avif" srcset="${escapeAttr(mk('avif'))}" sizes="${escapeAttr(sizes)}" />`,
+    /**
+     * Source 顺序：优先 WebP，兼顾慢网地区的稳定性。
+     * 详情见 `src/utils/media.ts`。
+     */
     `  <source type="image/webp" srcset="${escapeAttr(mk('webp'))}" sizes="${escapeAttr(sizes)}" />`,
+    `  <source type="image/avif" srcset="${escapeAttr(mk('avif'))}" sizes="${escapeAttr(sizes)}" />`,
     `  <img src="${escapeAttr(src0)}" alt="${escapeAttr(alt)}" class="${escapeAttr(className)}" loading="${loading}" decoding="async" fetchpriority="${fetchpriority}" />`,
     `</picture>`
   ].join('\\n');
@@ -431,7 +435,7 @@ function generateFourImagesHTML(product, images, productName, lang) {
               src: image.imageUrl,
               alt: titleText,
               className: 'collage-image',
-              sizes: '(max-width: 768px) 100vw, 75vw',
+              sizes: '(max-width: 768px) 100vw, 33vw',
               loading: 'lazy',
               fetchpriority: 'low'
             })}
