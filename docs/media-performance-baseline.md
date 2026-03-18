@@ -86,3 +86,65 @@
 - 是否达标（LCP/CLS/TBT + 行为约束）：是/否（原因：____）
 - 下一步优化方向（如需）：____
 
+---
+
+## Baseline 记录：2026-03-18（线上 `sinianlab.com`，自动采集）
+
+> 说明：本条记录为“线上自动采集”的 **资源头信息**（`Content-Type/Length/ETag/Last-Modified` 等），用于快速判断是否部署了响应式变体与缓存策略是否正常。\n> Lighthouse（LCP/CLS/TBT）仍建议用 Chrome DevTools 在同口径下手工补齐到上面的模板区块。
+
+### 测试口径（自动采集）
+- **站点**：`https://sinianlab.com/`
+- **采集时间（UTC）**：2026-03-18 10:05 左右
+- **采集方式**：`curl -I`/抓取 HTML 正则提取 assets
+
+### 关键行为校验（已满足）
+- **`/images-gen/*.avif` 可访问且返回 `image/avif`**（代表变体目录已部署）
+- **详情页视频**：首次进入不请求 mp4；点击“视频”tab 后才请求（在线上已人工复验）
+
+### 首页关键资源（HEAD 结果摘录）
+- **HTML**：`GET /`
+  - `Content-Type`: `text/html; charset=utf-8`
+  - `Content-Length`: `27882`
+  - `ETag`: `"69ba74d8-6cea"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:08 GMT`
+  - `Cache-Control`: `max-age=600`
+
+- **主 JS**：`/assets/main-BfZ4KR0k.js`
+  - `Content-Type`: `application/javascript; charset=utf-8`
+  - `Content-Length`: `17414`
+  - `ETag`: `"69ba74d7-4406"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:07 GMT`
+
+- **主 CSS**：`/assets/main-_CEpSIu_.css`
+  - `Content-Type`: `text/css; charset=utf-8`
+  - `Content-Length`: `4829`
+  - `ETag`: `"69ba74d7-12dd"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:07 GMT`
+
+### 图片变体（`images-gen`，用于确认“优化生效”）
+- **轮播首图（AVIF）**：`/images-gen/carousel_1-w1600.avif`
+  - `Content-Type`: `image/avif`
+  - `Content-Length`: `56165`
+  - `ETag`: `"69ba74d8-db65"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:08 GMT`
+
+- **产品主图（AVIF）**：`/images-gen/product_mainImage-w1600.avif`
+  - `Content-Type`: `image/avif`
+  - `Content-Length`: `93391`
+  - `ETag`: `"69ba74d8-16ccf"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:08 GMT`
+
+- **颜色规格预览图（AVIF，小图）**：`/images-gen/product_colorOrangePreImage-w240.avif`
+  - `Content-Type`: `image/avif`
+  - `Content-Length`: `8040`
+  - `ETag`: `"69ba74d7-1f68"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:07 GMT`
+
+### 视频资源（用于验证“按需加载 + Range”）
+- **视频文件**：`/images/product_video1.mp4`
+  - `Content-Type`: `video/mp4`
+  - `Content-Length`: `92849112`（约 88.5 MiB）
+  - `Accept-Ranges`: `bytes`
+  - `ETag`: `"69ba74d8-588c3d8"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 09:48:08 GMT`
+
