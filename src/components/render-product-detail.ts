@@ -2,7 +2,7 @@ import type { Product, ProductSKU, ProductSpecs } from '@/types/index.js';
 import { products } from '../config/products-data.js';
 import { i18n } from '../i18n/i18n.js';
 import type { Language } from '../i18n/locales.js';
-import { responsivePictureHTML } from '../utils/media.js';
+import { getResponsiveSrcsets, responsivePictureHTML } from '../utils/media.js';
 
 /** 按产品与属性维度的选中规格（productId -> attributeId -> optionId），用于切换规格时保持选中状态 */
 const selectedOptionsByProduct: Record<string, Record<string, string>> = {};
@@ -276,22 +276,48 @@ export function renderProductDetail(productId: string | null): void {
        * 长图策略（关键性能点）：
        * - 不能一次性把所有长图 src 写进 DOM，否则移动端会出现并发下载/解码拥塞，滚动掉帧。
        * - 先渲染“占位 img”（tiny data URI），把真实 URL 放进 data-src。
-       * - 使用 IntersectionObserver 提前 rootMargin 观察，分批（并发≤3）把 data-src 升级为 src。
+       * - 使用 IntersectionObserver 提前 rootMargin 观察，分批（并发≤2）把响应式变体激活。
+       *   - 成功：通过激活 `<source srcset>` 让浏览器请求 `images-gen/*.webp|avif`
+       *   - 失败：才回退到原始 png（保证可用性）
        * - `content-visibility` + `contain-intrinsic-size` 用于减少首屏布局/绘制成本，并降低 CLS 风险。
        */
       const tiny = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-      longImagesInner.innerHTML = longImages.map((src, idx) => `
-        <img
-          src="${tiny}"
-          data-src="${src}"
-          alt=""
-          loading="lazy"
-          decoding="async"
-          fetchpriority="low"
-          style="content-visibility:auto;contain-intrinsic-size: 1000px 1400px;"
-          data-long-index="${idx}"
-        />
-      `).join('');
+      longImagesInner.innerHTML = '';
+      const longImageWidths = [320, 640, 960, 1280];
+      for (let idx = 0; idx < longImages.length; idx++) {
+        const src = longImages[idx];
+        const picture = document.createElement('picture');
+        picture.style.display = 'block';
+        picture.style.width = '100%';
+
+        const srcsets = getResponsiveSrcsets(src, longImageWidths);
+        if (srcsets) {
+          const webp = document.createElement('source');
+          webp.type = 'image/webp';
+          webp.setAttribute('data-srcset', srcsets.webpSrcset);
+          webp.sizes = '100vw';
+          picture.appendChild(webp);
+
+          const avif = document.createElement('source');
+          avif.type = 'image/avif';
+          avif.setAttribute('data-srcset', srcsets.avifSrcset);
+          avif.sizes = '100vw';
+          picture.appendChild(avif);
+        }
+
+        const img = document.createElement('img');
+        img.src = tiny;
+        img.setAttribute('data-src', src);
+        img.alt = '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.setAttribute('fetchpriority', 'low');
+        img.style.contentVisibility = 'auto';
+        img.style.containIntrinsicSize = '1000px 1400px';
+        img.setAttribute('data-long-index', String(idx));
+        picture.appendChild(img);
+        longImagesInner.appendChild(picture);
+      }
       longImagesSection.style.display = '';
       setupLazyUpgradeImages(longImagesInner);
     } else {
@@ -564,19 +590,64 @@ function setupLazyUpgradeImages(container: HTMLElement): void {
     pending.delete(next);
     inflight++;
     const real = next.dataset.src;
-    if (real) {
+    const picture = next.closest('picture');
+    const sourceEls = picture ? Array.from(picture.querySelectorAll<HTMLSourceElement>('source[data-srcset]')) : [];
+
+    const hasResponsiveSources = sourceEls.length > 0;
+    if (hasResponsiveSources) {
+      // Activate <source srcset> first. This should make the browser download images-gen webp/avif.
+      for (const s of sourceEls) {
+        const v = s.getAttribute('data-srcset');
+        if (v) {
+          s.srcset = v;
+          s.removeAttribute('data-srcset');
+        }
+      }
+    } else if (real) {
+      // No responsive sources: fall back to original file.
       next.src = real;
       next.removeAttribute('data-src');
     }
+
     const done = () => {
       inflight = Math.max(0, inflight - 1);
-      next.removeEventListener('load', done);
-      next.removeEventListener('error', done);
       pump();
     };
-    next.addEventListener('load', done, { once: true });
-    next.addEventListener('error', done, { once: true });
-    // Keep pipeline moving.
+
+    // When responsive sources exist:
+    // - success: keep no fallback (remove data-src)
+    // - failure: set img.src = original real and then wait again.
+    if (hasResponsiveSources) {
+      next.addEventListener(
+        'load',
+        () => {
+          next.removeAttribute('data-src');
+          done();
+        },
+        { once: true }
+      );
+      next.addEventListener(
+        'error',
+        () => {
+          const fallback = next.dataset.src;
+          if (fallback) {
+            // Fallback to original png only if responsive variants fail.
+            next.src = fallback;
+            next.removeAttribute('data-src');
+            next.addEventListener('load', done, { once: true });
+            next.addEventListener('error', done, { once: true });
+            return;
+          }
+          done();
+        },
+        { once: true }
+      );
+    } else {
+      next.addEventListener('load', done, { once: true });
+      next.addEventListener('error', done, { once: true });
+    }
+
+    // Keep pipeline moving (in-flight limit enforced by done()).
     pump();
   };
 

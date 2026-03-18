@@ -86,6 +86,8 @@ export class Carousel {
           className: '',
           // 轮播通常占满容器
           sizes: '100vw',
+          // 收紧 srcset 候选宽度，避免慢网下选中过大的变体
+          widths: [320, 640, 960, 1280],
           loading: index === 0 ? 'eager' : 'lazy',
           decoding: 'async',
           fetchPriority: index === 0 ? 'high' : 'low'

@@ -148,3 +148,62 @@
   - `ETag`: `"69ba74d8-588c3d8"`
   - `Last-Modified`: `Wed, 18 Mar 2026 09:48:08 GMT`
 
+---
+
+## Baseline 记录：2026-03-18（China Slow Fix：WebP 优先 + sizes 收紧 + 长图 IO 收紧，线上自动采集）
+
+### 测试口径（线上自动采集）
+- **站点**：`https://sinianlab.com/`
+- **采集时间（UTC）**：2026-03-18 16:22 左右
+
+### 关键行为校验（已满足）
+- **`/images-gen/*.avif` 返回 `image/avif`**（代表变体目录已部署且被引用）
+- **视频按需加载**：首次进入不请求 mp4；点击“视频”tab 后才请求（与 QA Checklist 一致）
+
+### 首页关键资源（HEAD 结果摘录）
+- **HTML**：`GET /`
+  - `Content-Type`: `text/html; charset=utf-8`
+  - `Content-Length`: `27882`
+  - `ETag`: `"69bad114-6cea"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+  - `Cache-Control`: `max-age=600`
+
+- **主 JS**：`/assets/main-CnCyz0Mz.js`
+  - `Content-Type`: `application/javascript; charset=utf-8`
+  - `Content-Length`: `17414`
+  - `ETag`: `"69bad114-4406"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+
+- **主 CSS**：`/assets/main-DCUusG2R.css`
+  - `Content-Type`: `text/css; charset=utf-8`
+  - `Content-Length`: `4826`
+  - `ETag`: `"69bad114-12da"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+
+### 图片变体（`images-gen`，用于确认“优化生效”）
+- **轮播首图（AVIF）**：`/images-gen/carousel_1-w1600.avif`
+  - `Content-Type`: `image/avif`
+  - `Content-Length`: `56165`
+  - `ETag`: `"69bad114-db65"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+
+- **产品主图（AVIF）**：`/images-gen/product_mainImage-w1600.avif`
+  - `Content-Type`: `image/avif`
+  - `Content-Length`: `93391`
+  - `ETag`: `"69bad114-16ccf"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+
+- **颜色规格预览图（AVIF，小图）**：`/images-gen/product_colorOrangePreImage-w240.avif`
+  - `Content-Type`: `image/avif`
+  - `Content-Length`: `8040`
+  - `ETag`: `"69bad114-1f68"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+
+### 视频资源（用于验证“按需加载 + Range”）
+- **视频文件**：`/images/product_video1.mp4`
+  - `Content-Type`: `video/mp4`
+  - `Content-Length`: `92849112`（约 88.5 MiB）
+  - `Accept-Ranges`: `bytes`
+  - `ETag`: `"69bad114-588c3d8"`
+  - `Last-Modified`: `Wed, 18 Mar 2026 16:21:40 GMT`
+

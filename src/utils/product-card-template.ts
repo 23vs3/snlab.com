@@ -91,11 +91,14 @@ function generateFourImagesHTML(
                *   导致桌面端下载过大的变体（在慢网下体验更差）。
                * - 移动端仍使用 100vw。
                */
-              sizes: '(max-width: 768px) 100vw, 33vw',
+              // 桌面端卡片内容区宽度受 `--max-w(1200px)` 约束，使用固定值避免 33vw 在大屏上高估。
+              sizes: '(max-width: 768px) 100vw, 420px',
               loading: 'lazy',
               decoding: 'async',
               // 列表中图片数量密集，全部保持 low，避免挤占首屏 LCP（轮播/主图）带宽
-              fetchPriority: 'low'
+              fetchPriority: 'low',
+              // 收紧候选宽度，避免慢网下拉取过大的变体
+              widths: [160, 240, 320, 480, 640]
             })}
           </a>
         `;

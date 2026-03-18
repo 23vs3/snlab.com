@@ -12,7 +12,7 @@ const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 const indexTemplatePath = path.join(distDir, 'index.html');
 
-function responsivePictureHTMLForBuild({ src, alt = '', className = '', sizes = '100vw', loading = 'lazy', fetchpriority = 'low' }) {
+function responsivePictureHTMLForBuild({ src, alt = '', className = '', sizes = '100vw', loading = 'lazy', fetchpriority = 'low', widths = [160, 240, 320, 480, 640] }) {
   /**
    * Build-time responsive <picture> generator for *inlined* homepage HTML.
    *
@@ -55,7 +55,6 @@ function responsivePictureHTMLForBuild({ src, alt = '', className = '', sizes = 
   if (!name) {
     return `<img src="${escapeAttr(src0)}" alt="${escapeAttr(alt)}" class="${escapeAttr(className)}" loading="${loading}" decoding="async" fetchpriority="${fetchpriority}" />`;
   }
-  const widths = [160, 240, 320, 640, 960, 1280, 1600];
   const mk = (fmt) => widths.map(w => `/images-gen/${dirPart}${name}-w${w}.${fmt} ${w}w`).join(', ');
   return [
     `<picture>`,
@@ -435,9 +434,10 @@ function generateFourImagesHTML(product, images, productName, lang) {
               src: image.imageUrl,
               alt: titleText,
               className: 'collage-image',
-              sizes: '(max-width: 768px) 100vw, 33vw',
+              sizes: '(max-width: 768px) 100vw, 420px',
               loading: 'lazy',
-              fetchpriority: 'low'
+              fetchpriority: 'low',
+              widths: [160, 240, 320, 480, 640]
             })}
           </a>
         `;

@@ -158,6 +158,32 @@ export function responsivePictureHTML(opts: ResponsiveImageOptions): string {
 }
 
 /**
+ * Build responsive srcsets (webp + avif) for `/images/...` assets.
+ *
+ * Used by long-image lazy upgrade so that we can activate `<source srcset>`
+ * only when the placeholder enters viewport.
+ *
+ * Returns `null` when:
+ * - src is not a local `/images/...` asset
+ * - dev/test environment (variants might be missing)
+ * - variant candidates can't be constructed
+ */
+export function getResponsiveSrcsets(
+  src: string,
+  widths?: number[]
+): { webpSrcset: string; avifSrcset: string } | null {
+  const normalized = normalizePublicSrc(src);
+  if (!normalized.startsWith('/images/')) return null;
+  if (isDevEnv()) return null;
+
+  const usedWidths = (widths?.length ? widths : DEFAULT_WIDTHS).slice().sort((a, b) => a - b);
+  const avifSrcset = buildSrcset(normalized, usedWidths, 'avif');
+  const webpSrcset = buildSrcset(normalized, usedWidths, 'webp');
+  if (!avifSrcset || !webpSrcset) return null;
+  return { webpSrcset, avifSrcset };
+}
+
+/**
  * Create DOM <picture> element (for imperative rendering, e.g. Carousel).
  */
 export function createResponsivePictureElement(opts: ResponsiveImageOptions): HTMLElement {
